@@ -165,6 +165,7 @@ const fr = {
   examFailed: 'Examen non réussi',
   examNeeded: (percent: string) => `Il faut au moins ${percent} de notes trouvées du premier coup.`,
   retryExam: 'Repasser l’examen',
+  keepPractising: 'Continuer à s’entraîner',
   practiceLevel: (n: number) => `S’entraîner au niveau ${n}`,
   abandonExam: 'Abandonner l’examen',
 
@@ -390,6 +391,7 @@ const en: Messages = {
   examFailed: 'Exam not passed',
   examNeeded: (percent) => `At least ${percent} of notes must be found on the first try.`,
   retryExam: 'Retake the exam',
+  keepPractising: 'Keep practising',
   practiceLevel: (n) => `Practise level ${n}`,
   abandonExam: 'Abandon the exam',
 

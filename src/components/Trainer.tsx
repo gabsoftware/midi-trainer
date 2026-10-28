@@ -460,6 +460,9 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
               <button type="button" className="primary" onClick={() => startExam(level)}>
                 {t.takeExam} <kbd>{t.keyEnter}</kbd>
               </button>
+              <button type="button" onClick={() => startLevel(level)}>
+                {t.keepPractising}
+              </button>
               <button type="button" onClick={dismissAdvice}>
                 {t.later} <kbd>{t.keyEscape}</kbd>
               </button>
