@@ -35,6 +35,8 @@ const COLORS = {
   pending: '#111',
   current: '#2f5bd3',
   correct: '#15803d',
+  /** Note déjà jouée, ligne en cours : estompée, pour que le regard aille à la note à jouer. */
+  played: '#a8a29e',
   missed: '#c2410c',
   wrong: '#dc2626',
 } as const;
@@ -89,8 +91,14 @@ function startLine(level: LevelDefinition, octaveMode: OctaveMode, previous: num
 
 /**
  * Couleurs d'une ligne. Note isolée : noire, verte une fois trouvée. Suite de notes : jouées
- * (vert, ou orange si ratées au premier essai), attendue (bleu), à venir (noir).
+ * (gris pâle), attendue (bleu, avec le curseur), à venir (noir) ; une fois la ligne terminée,
+ * chaque note devient verte, ou orange si elle a été ratée au premier essai.
  */
+/** Position du curseur de lecture : seulement dans une ligne de plusieurs notes, tant qu'elle n'est pas terminée. */
+function lineCursor(line: SequenceState): number | null {
+  return line.notes.length > 1 && !line.done ? line.position : null;
+}
+
 function lineNotes(line: SequenceState, wrongFlash: boolean): StaffNote[] {
   if (line.notes.length === 1) {
     const color = line.done ? COLORS.correct : wrongFlash ? COLORS.wrong : COLORS.pending;
@@ -98,6 +106,7 @@ function lineNotes(line: SequenceState, wrongFlash: boolean): StaffNote[] {
   }
   return line.notes.map((midi, index) => {
     if (index < line.attempts.length) {
+      if (!line.done) return { midi, color: COLORS.played };
       return { midi, color: line.attempts[index].firstTryCorrect ? COLORS.correct : COLORS.missed };
     }
     if (index === line.position && !line.done) return { midi, color: wrongFlash ? COLORS.wrong : COLORS.current };
@@ -531,7 +540,7 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
               </div>
             </div>
           ) : exam ? (
-            <StaffView notes={lineNotes(exam.line, wrongFlash)} clef={level.clef} />
+            <StaffView notes={lineNotes(exam.line, wrongFlash)} cursor={lineCursor(exam.line)} clef={level.clef} />
           ) : finished ? (
             <div className="session-summary" role="status">
               <h3>{t.sessionFinished}</h3>
@@ -556,7 +565,7 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
             </div>
           ) : line ? (
             <div className="staff-exercise">
-              <StaffView notes={lineNotes(line, wrongFlash)} clef={level.clef} />
+              <StaffView notes={lineNotes(line, wrongFlash)} cursor={lineCursor(line)} clef={level.clef} />
               {assisted && !line.done && <p className="assisted-name">{noteName(line.current.expected)}</p>}
             </div>
           ) : (
