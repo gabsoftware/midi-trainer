@@ -1,0 +1,278 @@
+:root {
+  --bg: #f6f5f2;
+  --surface: #ffffff;
+  --text: #1c1c1e;
+  --muted: #6b6b70;
+  --border: #e2e0db;
+  --accent: #2f5bd3;
+  --ok: #15803d;
+  --ko: #dc2626;
+  --warn: #c58a00;
+
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  line-height: 1.45;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+}
+
+button,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+button:hover {
+  border-color: #c9c6bf;
+}
+
+button.primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+  padding: 0.6rem 1.4rem;
+  font-weight: 600;
+}
+
+select {
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+}
+
+kbd {
+  font: 0.75em ui-monospace, monospace;
+  padding: 0.05rem 0.35rem;
+  margin-left: 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--muted);
+}
+
+.app {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 3rem;
+}
+
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 1rem;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 650;
+}
+
+.midi-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.status-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
+.status-dot.ok {
+  background: var(--ok);
+}
+
+.status-dot.error {
+  background: var(--ko);
+}
+
+.status-error {
+  color: var(--ko);
+}
+
+.trainer {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.trainer-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.staff-card {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 0.75rem;
+  min-height: 260px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.staff {
+  width: 100%;
+  max-width: 580px;
+  display: flex;
+  justify-content: center;
+}
+
+.staff svg {
+  display: block;
+  max-width: 100%;
+  height: auto;
+}
+
+.staff-placeholder {
+  text-align: center;
+}
+
+.hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.pause-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  border-radius: 14px;
+  background: rgb(255 255 255 / 0.9);
+  text-align: center;
+  padding: 1rem;
+}
+
+.pause-overlay strong {
+  font-size: 1.1rem;
+}
+
+.feedback {
+  min-height: 1.6rem;
+  text-align: center;
+  font-size: 1.05rem;
+}
+
+.feedback .ok {
+  color: var(--ok);
+  font-weight: 600;
+}
+
+.feedback .ko {
+  color: var(--ko);
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.piano {
+  position: relative;
+}
+
+.piano svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 70px;
+}
+
+.key.white {
+  fill: #fff;
+  stroke: #b9b6ae;
+  stroke-width: 0.6;
+}
+
+.key.white.middle-c {
+  fill: #f0eee9;
+}
+
+.key.black {
+  fill: #2b2b2e;
+}
+
+.key.pressed {
+  fill: var(--accent);
+}
+
+.piano-note {
+  position: absolute;
+  right: 0;
+  top: -1.3rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.5rem;
+  align-items: center;
+  font-size: 0.9rem;
+}
+
+.options .hint {
+  flex-basis: 100%;
+}
+
+.journal {
+  font-size: 0.85rem;
+}
+
+.journal summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.journal table {
+  width: 100%;
+  margin-top: 0.5rem;
+  border-collapse: collapse;
+}
+
+.journal th,
+.journal td {
+  text-align: left;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.journal tr.missed td:first-child {
+  color: var(--ko);
+}
