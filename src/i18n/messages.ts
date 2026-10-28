@@ -51,6 +51,10 @@ const fr = {
   settingsReading: 'Lecture',
   settingsInput: 'Clavier',
   settingsSaved: 'Les réglages sont enregistrés automatiquement pour cet élève.',
+  keyboardShape: 'Forme du clavier affiché',
+  keyboardShapePiano: 'piano : touches blanches toutes égales',
+  keyboardShapeEqual: 'demi-tons égaux : Do, Ré, Mi un peu plus étroites',
+  keyboardShapeHint: 'Choisissez la forme qui ressemble à votre clavier. Elle ne change rien aux exercices.',
 
   // Réglages de la séance
   sessionSettings: 'Réglages',
@@ -280,6 +284,10 @@ const en: Messages = {
   settingsReading: 'Reading',
   settingsInput: 'Keyboard',
   settingsSaved: 'Settings are saved automatically for this student.',
+  keyboardShape: 'On-screen keyboard shape',
+  keyboardShapePiano: 'piano: all white keys equal',
+  keyboardShapeEqual: 'equal semitones: C, D, E slightly narrower',
+  keyboardShapeHint: 'Pick the shape that looks like your keyboard. It does not change the exercises.',
 
   sessionSettings: 'Settings',
   notesPerSession: 'Notes per session',

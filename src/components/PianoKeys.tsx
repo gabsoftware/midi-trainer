@@ -1,7 +1,7 @@
 import { useRef, type PointerEvent } from 'react';
 import { useI18n } from '../i18n/context';
 import type { NoteListener } from '../midi/events';
-import { keyboardLayout } from './keyboardLayout';
+import { keyboardLayout, type KeyboardShape } from './keyboardLayout';
 
 const WHITE_HEIGHT = 48;
 const BLACK_HEIGHT = 30;
@@ -16,13 +16,14 @@ interface PianoKeysProps {
    * horodaté comme un événement MIDI, donc traité exactement comme un vrai clavier.
    */
   readonly onNote?: NoteListener;
+  readonly shape?: KeyboardShape;
 }
 
 /**
  * Clavier miniature : indique les touches enfoncées et, si `onNote` est fourni, se joue au clic
  * (C2 à C7 par défaut). Géométrie d'un clavier à demi-tons égaux : voir keyboardLayout.ts.
  */
-export function PianoKeys({ pressed, low = 36, high = 96, onNote }: PianoKeysProps) {
+export function PianoKeys({ pressed, low = 36, high = 96, onNote, shape = 'piano' }: PianoKeysProps) {
   const { t } = useI18n();
   /** Note tenue par chaque pointeur (souris, doigts), pour relâcher la bonne. */
   const held = useRef(new Map<number, number>());
@@ -42,7 +43,7 @@ export function PianoKeys({ pressed, low = 36, high = 96, onNote }: PianoKeysPro
     held.current.delete(event.pointerId);
     onNote({ type: 'noteoff', note, velocity: 0, channel: 0, timestamp: event.timeStamp, source: 'on-screen' });
   };
-  const { whites, blacks, width } = keyboardLayout(low, high);
+  const { whites, blacks, width } = keyboardLayout(low, high, shape);
   const outOfRange = [...pressed].some((note) => note < low || note > high);
 
   return (

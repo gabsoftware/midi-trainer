@@ -31,7 +31,7 @@ Le cahier des charges complet et le journal des décisions sont dans [docs/cahie
   - passage automatique à la note suivante et son délai, ou Entrée ;
   - mode assisté (nom des notes affiché ; ces notes ne comptent ni pour la maîtrise ni pour l'adaptation) ;
   - octave, simulation au clavier d'ordinateur.
-- **Clavier affiché jouable** à la souris ou au doigt. Sa géométrie est celle d'un clavier à demi-tons égaux : touches noires centrées sur leur demi-ton, Do–Ré–Mi un peu plus étroites que Fa–Sol–La–Si (22 mm contre 23 mm sur une octave de 158 mm).
+- **Clavier affiché jouable** à la souris ou au doigt. Sa forme est un réglage par élève, pour ressembler à son clavier : « piano » (touches blanches égales, touches noires décalées dans chaque groupe, par défaut) ou « demi-tons égaux » (touches noires centrées sur leur demi-ton, Do–Ré–Mi un peu plus étroites, comme sur certains claviers numériques).
 
 - **Statistiques** par élève, filtrables par niveau :
   - notes jouées et séances ;

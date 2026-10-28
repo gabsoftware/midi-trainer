@@ -1,5 +1,9 @@
 import { useI18n } from '../i18n/context';
 import { ADVANCE_DELAYS_MS, SESSION_LENGTHS, type Preferences } from '../storage/preferences';
+import { PianoKeys } from './PianoKeys';
+
+/** Aperçu : aucune touche enfoncée. */
+const NO_KEYS: ReadonlySet<number> = new Set();
 
 interface SettingsViewProps {
   readonly studentName: string;
@@ -103,6 +107,18 @@ export function SettingsView({ studentName, preferences, onChange }: SettingsVie
           />
           <span>{t.computerKeyboard}</span>
         </label>
+        <label>
+          <span>{t.keyboardShape}</span>
+          <select
+            value={preferences.keyboardShape}
+            onChange={(event) => onChange({ keyboardShape: event.target.value as Preferences['keyboardShape'] })}
+          >
+            <option value="piano">{t.keyboardShapePiano}</option>
+            <option value="equal-semitones">{t.keyboardShapeEqual}</option>
+          </select>
+        </label>
+        <p className="hint">{t.keyboardShapeHint}</p>
+        <PianoKeys pressed={NO_KEYS} low={60} high={83} shape={preferences.keyboardShape} />
       </section>
     </main>
   );

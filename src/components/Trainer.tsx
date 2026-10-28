@@ -607,7 +607,7 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
           </div>
         )}
 
-        <PianoKeys pressed={pressed} onNote={handleNote} />
+        <PianoKeys pressed={pressed} onNote={handleNote} shape={preferences.keyboardShape} />
 
         {!exam && attempts.length > 0 && (
           <details className="journal">

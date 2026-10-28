@@ -1,3 +1,4 @@
+import type { KeyboardShape } from '../components/keyboardLayout';
 import type { OctaveMode } from '../music/validation';
 
 export interface Preferences {
@@ -15,6 +16,8 @@ export interface Preferences {
   readonly advanceDelayMs: number;
   /** Mode assisté : nom de la note affiché avant la réponse. */
   readonly showNoteNames: boolean;
+  /** Forme du clavier affiché, pour ressembler au clavier de l'élève. */
+  readonly keyboardShape: KeyboardShape;
 }
 
 export const SESSION_LENGTHS = [10, 20, 30, 50, 0] as const;
@@ -29,7 +32,10 @@ export const DEFAULT_PREFERENCES: Preferences = {
   autoAdvance: true,
   advanceDelayMs: 600,
   showNoteNames: false,
+  keyboardShape: 'piano',
 };
+
+export const KEYBOARD_SHAPES: readonly KeyboardShape[] = ['piano', 'equal-semitones'];
 
 function oneOf<T>(value: unknown, allowed: readonly T[], fallback: T): T {
   return allowed.includes(value as T) ? (value as T) : fallback;
@@ -65,6 +71,7 @@ export function parsePreferences(raw: string | null): Preferences {
     autoAdvance: booleanOr(value.autoAdvance, DEFAULT_PREFERENCES.autoAdvance),
     advanceDelayMs: oneOf<number>(value.advanceDelayMs, ADVANCE_DELAYS_MS, DEFAULT_PREFERENCES.advanceDelayMs),
     showNoteNames: booleanOr(value.showNoteNames, DEFAULT_PREFERENCES.showNoteNames),
+    keyboardShape: oneOf(value.keyboardShape, KEYBOARD_SHAPES, DEFAULT_PREFERENCES.keyboardShape),
   };
 }
 
