@@ -7,7 +7,7 @@ Le cahier des charges complet et le journal des décisions sont dans [docs/cahie
 ## État actuel
 
 - **Reconnaissance de notes isolées (mode A).** Une bonne réponse passe la note en vert et fait avancer l'exercice. Une mauvaise réponse fait clignoter la note en rouge, sans avancer.
-- **Parcours en 10 niveaux.** Les niveaux 1 à 6 et 8 sont jouables : clé de sol, clé de fa, lignes supplémentaires, grand système. Les niveaux 7 (séquences), 9 (accords et altérations) et 10 (rythme) sont annoncés « à venir ».
+- **Parcours en 10 niveaux.** Les niveaux 1 à 8 sont jouables : clé de sol, clé de fa, lignes supplémentaires, suites de notes (niveau 7 : lignes de 3 à 8 notes à jouer dans l'ordre), grand système. Les niveaux 9 (accords et altérations) et 10 (rythme) sont annoncés « à venir ».
 - **Choix libre du niveau**, avec un niveau conseillé : le premier niveau jouable non maîtrisé. Les critères de maîtrise du niveau et leur état sont toujours affichés.
 - **Conseil de passage au niveau suivant** dès qu'un niveau est maîtrisé : Entrée pour avancer, Échap pour rester. Le changement n'est jamais automatique.
 - **Plusieurs élèves** : chacun retrouve son historique, sa progression et ses réglages. Un écran « Qui joue ? » s'affiche au lancement s'il y a plusieurs élèves ; on y crée, renomme et supprime les élèves.
@@ -43,7 +43,7 @@ Le cahier des charges complet et le journal des décisions sont dans [docs/cahie
 
   Les notes en mode assisté sont exclues et comptées à part.
 
-Pas encore implémentés : séquences (niveau 7), accords et altérations (niveau 9), rythme (niveau 10).
+Pas encore implémentés : accords et altérations (niveau 9), rythme (niveau 10).
 
 ## Démarrage
 

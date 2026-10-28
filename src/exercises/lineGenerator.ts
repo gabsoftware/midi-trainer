@@ -9,6 +9,11 @@ export interface LineOptions {
   readonly previous: number | null;
   /** Notes déjà apparues dans l'examen : les autres sont favorisées, pour que tout le niveau soit vérifié. */
   readonly used: ReadonlySet<number>;
+  /**
+   * Poids de chaque note (entraînement adaptatif). S'ils sont fournis, ils remplacent
+   * la préférence pour les notes encore jamais apparues.
+   */
+  readonly weights?: ReadonlyMap<number, number>;
   /** Source aléatoire dans [0, 1[ ; déterministe si la source l'est. */
   readonly random: () => number;
 }
@@ -20,8 +25,13 @@ function degree(midi: number): number {
   return diatonicIndex(midiToPitch(midi));
 }
 
-function pick(candidates: readonly number[], used: ReadonlySet<number>, random: () => number): number {
-  const weights = candidates.map((note) => (used.has(note) ? 1 : UNUSED_WEIGHT));
+function pick(
+  candidates: readonly number[],
+  used: ReadonlySet<number>,
+  noteWeights: ReadonlyMap<number, number> | undefined,
+  random: () => number,
+): number {
+  const weights = candidates.map((note) => noteWeights?.get(note) ?? (used.has(note) ? 1 : UNUSED_WEIGHT));
   let threshold = random() * weights.reduce((sum, weight) => sum + weight, 0);
   for (let index = 0; index < candidates.length; index++) {
     threshold -= weights[index];
@@ -51,7 +61,7 @@ export function generateLine(pool: readonly number[], options: LineOptions): num
       index === 0 || previous === null
         ? notPrevious
         : notPrevious.filter((note) => Math.abs(degree(note) - degree(previous!)) <= maxLeap);
-    const note = pick(close.length > 0 ? close : notPrevious, used, random);
+    const note = pick(close.length > 0 ? close : notPrevious, used, options.weights, random);
     line.push(note);
     used.add(note);
     previous = note;

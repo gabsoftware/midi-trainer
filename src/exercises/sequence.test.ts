@@ -105,6 +105,20 @@ describe('generateLine', () => {
     );
   });
 
+  it('fait revenir plus souvent les notes de poids élevé (entraînement adaptatif)', () => {
+    const hard = pool[3];
+    const weights = new Map(pool.map((note) => [note, note === hard ? 4 : 0.25]));
+    const random = seeded(3);
+    const counts = new Map<number, number>();
+    for (let line = 0; line < 100; line++) {
+      for (const note of generateLine(pool, { ...options, weights, random })) {
+        counts.set(note, (counts.get(note) ?? 0) + 1);
+      }
+    }
+    const others = pool.filter((note) => note !== hard).map((note) => counts.get(note) ?? 0);
+    expect(counts.get(hard)).toBeGreaterThan(Math.max(...others));
+  });
+
   it('fonctionne avec seulement deux notes', () => {
     const notes = generateLine([E4, G4], { ...options, random: seeded(2) });
     for (let index = 1; index < notes.length; index++) expect(notes[index]).not.toBe(notes[index - 1]);

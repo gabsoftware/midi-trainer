@@ -72,6 +72,7 @@ const fr = {
   // Déroulement et bilan
   noteProgress: (n: number, total: number) => (total > 0 ? `Note ${n} / ${total}` : `Note ${n}`),
   nextNote: 'Note suivante',
+  nextLine: 'Ligne suivante',
   sessionFinished: 'Séance terminée',
   summaryFirstTry: (count: number, total: number, percent: string) =>
     `${count} / ${total} du premier coup (${percent})`,
@@ -303,6 +304,7 @@ const en: Messages = {
 
   noteProgress: (n, total) => (total > 0 ? `Note ${n} / ${total}` : `Note ${n}`),
   nextNote: 'Next note',
+  nextLine: 'Next line',
   sessionFinished: 'Session complete',
   summaryFirstTry: (count, total, percent) => `${count} / ${total} on first try (${percent})`,
   summaryErrors: (count) => (count === 0 ? 'no errors' : `${count} error${count > 1 ? 's' : ''} in total`),

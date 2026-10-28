@@ -62,6 +62,14 @@ function exam(lines: number, min: number, max: number, maxLeap: number): ExamDef
   return { lines, notesPerLine: { min, max }, maxLeap, passAccuracy: 0.9 };
 }
 
+/** Lignes de l'exercice « suite de notes » (mode B), sans rythme. */
+export interface LineDefinition {
+  readonly min: number;
+  readonly max: number;
+  /** Écart maximal entre deux notes successives, en degrés. */
+  readonly maxLeap: number;
+}
+
 export interface LevelDefinition {
   readonly id: string;
   readonly number: number;
@@ -71,6 +79,8 @@ export interface LevelDefinition {
   /** Notes autorisées, en numéros MIDI. */
   readonly notes: readonly number[];
   readonly exercise: LevelExercise;
+  /** Taille des lignes, pour un exercice `sequence`. */
+  readonly line?: LineDefinition;
   /** Octave exigée par défaut ; l'utilisateur peut la modifier. */
   readonly defaultOctaveMode: OctaveMode;
   /** En dessous de ce temps, une bonne réponse est considérée comme rapide (adaptation). */
@@ -212,11 +222,12 @@ export const LEVELS: readonly LevelDefinition[] = [
     clef: 'treble',
     notes: naturalNotesBetween('C4', 'A5'),
     exercise: 'sequence',
+    line: { min: 3, max: 8, maxLeap: 5 },
     defaultOctaveMode: 'exact',
     fastResponseMs: 1500,
     mastery: BASE_MASTERY,
-    exam: exam(7, 7, 8, 5),
-    available: false,
+    exam: exam(7, 8, 8, 5),
+    available: true,
   },
   {
     id: 'level-8',
@@ -263,6 +274,7 @@ export const LEVELS: readonly LevelDefinition[] = [
     clef: 'grand',
     notes: naturalNotesBetween('C3', 'C5'),
     exercise: 'sequence',
+    line: { min: 4, max: 8, maxLeap: 5 },
     defaultOctaveMode: 'exact',
     fastResponseMs: 2500,
     mastery: BASE_MASTERY,

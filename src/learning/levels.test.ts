@@ -67,6 +67,20 @@ describe('LEVELS', () => {
     }
   });
 
+  it('donne une taille de ligne à chaque niveau de suites de notes, et seulement à eux', () => {
+    for (const { id, exercise, line } of LEVELS) {
+      if (exercise === 'single') {
+        expect(line, id).toBeUndefined();
+        continue;
+      }
+      expect(line, id).toBeDefined();
+      expect(line!.min, id).toBeGreaterThanOrEqual(3);
+      expect(line!.max, id).toBeLessThanOrEqual(8);
+      expect(line!.min, id).toBeLessThanOrEqual(line!.max);
+      expect(line!.maxLeap, id).toBeGreaterThanOrEqual(2);
+    }
+  });
+
   it('reprend les notes du cahier des charges pour les premiers niveaux', () => {
     expect(findLevel('level-1')?.notes).toEqual([64, 67, 71]); // Mi, Sol, Si
     expect(findLevel('level-2')?.notes).toEqual([64, 65, 67, 69, 71]); // + Fa, La

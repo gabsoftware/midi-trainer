@@ -240,8 +240,12 @@ describe('recommendLevel', () => {
 
   it('saute les niveaux pas encore disponibles', () => {
     const mastered = Object.fromEntries(
-      ['level-1', 'level-2', 'level-3', 'level-4', 'level-5', 'level-6'].map((id) => [id, 'mastered' as const]),
+      ['level-1', 'level-2', 'level-3', 'level-4', 'level-5', 'level-6', 'level-7', 'level-8'].map((id) => [
+        id,
+        'mastered' as const,
+      ]),
     );
+    // Niveaux 9 et 10 pas encore jouables : on reste sur le dernier niveau jouable.
     expect(recommendLevel(LEVELS, progressOf(mastered)).id).toBe('level-8');
   });
 });
@@ -256,7 +260,7 @@ describe('nextLevel', () => {
   });
 
   it('saute les niveaux déjà maîtrisés ou indisponibles', () => {
-    const progress = progressOf({ 'level-5': 'mastered', 'level-6': 'mastered' });
+    const progress = progressOf({ 'level-5': 'mastered', 'level-6': 'mastered', 'level-7': 'mastered' });
     expect(nextLevel(LEVELS, level('level-4'), progress)?.id).toBe('level-8');
   });
 

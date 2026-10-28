@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { generateLine } from '../exercises/lineGenerator';
 import {
-  pause,
-  playNote,
-  resumeNote,
-  startNote,
-  type NoteAttempt,
-  type PauseReason,
-  type SingleNoteState,
-} from '../exercises/singleNote';
+  pauseSequence,
+  playSequence,
+  resumeSequence,
+  startSequence,
+  type SequenceState,
+} from '../exercises/sequence';
+import type { NoteAttempt, PauseReason } from '../exercises/singleNote';
 import { useExam } from '../hooks/useExam';
 import { historyService, useHistory } from '../hooks/useHistory';
 import { useKeyLabels } from '../hooks/useKeyLabels';
@@ -50,7 +50,8 @@ interface Session {
   readonly assisted: boolean;
   /** Nombre de notes prévu atteint : le bilan s'affiche, plus aucune note n'est jouée. */
   readonly finished: boolean;
-  readonly exercise: SingleNoteState;
+  /** Ligne en cours : une seule note (exercice `single`) ou une suite de notes (`sequence`). */
+  readonly line: SequenceState;
   readonly attempts: readonly NoteAttempt[];
 }
 
@@ -59,14 +60,49 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 /**
- * Note suivante, choisie selon les performances de l'élève : les notes ratées reviennent plus
- * souvent, les notes reconnues vite moins souvent. L'historique est relu à chaque tirage,
- * donc l'adaptation joue dès la note suivante. Toutes les tentatives de l'élève sur une note
- * comptent, quel que soit le niveau : reconnaître une note est la même compétence partout.
+ * Ligne suivante (une note, ou une suite de notes selon le niveau), choisie selon les
+ * performances de l'élève : les notes ratées reviennent plus souvent, les notes reconnues
+ * vite moins souvent. L'historique est relu à chaque tirage, donc l'adaptation joue dès la
+ * ligne suivante. Toutes les tentatives de l'élève sur une note comptent, quel que soit le
+ * niveau : reconnaître une note est la même compétence partout.
  */
-function chooseNote(level: LevelDefinition, previous: number | null): number {
+function chooseLine(level: LevelDefinition, previous: number | null): number[] {
   const weights = noteWeights(level.notes, historyService.getSnapshot().attempts, level.fastResponseMs);
-  return pickWeightedNote(level.notes, weights, previous, Math.random);
+  if (level.exercise === 'single' || !level.line) {
+    return [pickWeightedNote(level.notes, weights, previous, Math.random)];
+  }
+  const { min, max, maxLeap } = level.line;
+  return generateLine(level.notes, {
+    minLength: min,
+    maxLength: max,
+    maxLeap,
+    previous,
+    used: new Set(),
+    weights,
+    random: Math.random,
+  });
+}
+
+function startLine(level: LevelDefinition, octaveMode: OctaveMode, previous: number | null): SequenceState {
+  return startSequence(chooseLine(level, previous), octaveMode, performance.now());
+}
+
+/**
+ * Couleurs d'une ligne. Note isolée : noire, verte une fois trouvée. Suite de notes : jouées
+ * (vert, ou orange si ratées au premier essai), attendue (bleu), à venir (noir).
+ */
+function lineNotes(line: SequenceState, wrongFlash: boolean): StaffNote[] {
+  if (line.notes.length === 1) {
+    const color = line.done ? COLORS.correct : wrongFlash ? COLORS.wrong : COLORS.pending;
+    return [{ midi: line.notes[0], color }];
+  }
+  return line.notes.map((midi, index) => {
+    if (index < line.attempts.length) {
+      return { midi, color: line.attempts[index].firstTryCorrect ? COLORS.correct : COLORS.missed };
+    }
+    if (index === line.position && !line.done) return { midi, color: wrongFlash ? COLORS.wrong : COLORS.current };
+    return { midi, color: COLORS.pending };
+  });
 }
 
 function effectiveOctaveMode(preferences: Preferences, level: LevelDefinition): OctaveMode {
@@ -122,7 +158,7 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
   const chosen = findLevel(preferences.levelId);
   const selectedLevel = chosen?.available ? chosen : recommended;
   const level = exam?.level ?? session?.level ?? selectedLevel;
-  const exercise = session?.exercise ?? null;
+  const line = session?.line ?? null;
   const attempts = session?.attempts ?? [];
   const finished = session?.finished ?? false;
 
@@ -146,34 +182,36 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
     setSession(nextSession);
   }, []);
 
-  const updateExercise = useCallback(
-    (update: (exercise: SingleNoteState) => SingleNoteState) => {
+  const updateLine = useCallback(
+    (update: (line: SequenceState) => SequenceState) => {
       const current = sessionRef.current;
       if (!current || current.finished) return;
-      const updated = update(current.exercise);
-      if (updated === current.exercise) return;
-      if (updated.attempt === null || current.exercise.attempt !== null) {
-        commitSession({ ...current, exercise: updated });
+      const updated = update(current.line);
+      if (updated === current.line) return;
+      if (updated.attempts.length === current.line.attempts.length || updated.notes !== current.line.notes) {
+        commitSession({ ...current, line: updated });
         return;
       }
-      // Une note vient d'être réussie : on l'enregistre dans l'historique.
+      // Une note vient d'être trouvée : on l'enregistre dans l'historique.
+      const attempt = updated.attempts[updated.attempts.length - 1];
       const id =
         current.id ??
         historyService.startSession({
           levelId: current.level.id,
-          mode: 'single',
+          mode: current.level.exercise,
           clef: current.level.clef,
           assisted: current.assisted,
         }).id;
-      historyService.recordAttempt(id, updated.attempt);
-      const sessionAttempts = [...current.attempts, updated.attempt];
+      historyService.recordAttempt(id, attempt);
+      const sessionAttempts = [...current.attempts, attempt];
       const total = latest.current.preferences.notesPerSession;
       commitSession({
         ...current,
         id,
-        exercise: updated,
+        line: updated,
         attempts: sessionAttempts,
-        finished: total > 0 && sessionAttempts.length >= total,
+        // Une ligne commencée est toujours terminée.
+        finished: total > 0 && sessionAttempts.length >= total && updated.done,
       });
     },
     [commitSession],
@@ -194,7 +232,7 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
         statusAtStart: currentProgress.get(target.id)?.status ?? 'new',
         assisted: currentPreferences.showNoteNames,
         finished: false,
-        exercise: startNote(chooseNote(target, null), octaveMode, performance.now()),
+        line: startLine(target, octaveMode, null),
         attempts: [],
       });
     },
@@ -212,23 +250,21 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
 
   const leaveExam = useCallback(() => examApi.abandon(), [examApi]);
 
-  /** Note suivante, après une bonne réponse (automatiquement ou avec Entrée). */
+  /** Ligne suivante, une fois la ligne terminée (automatiquement ou avec Entrée). */
   const advance = useCallback(() => {
     const current = sessionRef.current;
     if (!current) return;
-    updateExercise((state) =>
-      state.phase === 'answered'
-        ? startNote(chooseNote(current.level, state.expected), current.octaveMode, performance.now())
-        : state,
+    updateLine((state) =>
+      state.done ? startLine(current.level, current.octaveMode, state.notes[state.notes.length - 1]) : state,
     );
-  }, [updateExercise]);
+  }, [updateLine]);
 
   /**
    * Entrée :
    * - examen terminé : niveau suivant s'il est réussi, nouvel essai sinon ;
    * - examen ou niveau suivant conseillé : y aller ;
    * - aucune séance, ou séance terminée : nouvelle séance ;
-   * - bonne réponse sans passage automatique : note suivante ;
+   * - ligne terminée sans passage automatique : ligne suivante ;
    * - sinon rien (une séance ou un examen en cours n'est jamais relancé par erreur).
    */
   const handleEnter = useCallback(() => {
@@ -246,7 +282,7 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
     if (suggestExam) startExam(current);
     else if (suggestNext && nextTarget) startLevel(nextTarget);
     else if (!running || running.finished) startLevel(current);
-    else if (running.exercise.phase === 'answered' && !prefs.autoAdvance) advance();
+    else if (running.line.done && !prefs.autoAdvance) advance();
   }, [advance, examRef, leaveExam, startExam, startLevel]);
 
   const dismissAdvice = useCallback(() => setDismissedAdviceFor(latest.current.level.id), []);
@@ -265,9 +301,9 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
     (reason: PauseReason) => {
       const now = performance.now();
       examApi.pause(reason, now);
-      updateExercise((current) => pause(current, reason, now));
+      updateLine((current) => pauseSequence(current, reason, now));
     },
-    [examApi, updateExercise],
+    [examApi, updateLine],
   );
 
   const togglePause = useCallback(() => {
@@ -276,8 +312,10 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
       examApi.togglePause(now);
       return;
     }
-    updateExercise((current) => (current.phase === 'paused' ? resumeNote(current, now) : pause(current, 'user', now)));
-  }, [examApi, examRef, updateExercise]);
+    updateLine((current) =>
+      current.current.phase === 'paused' ? resumeSequence(current, now) : pauseSequence(current, 'user', now),
+    );
+  }, [examApi, examRef, updateLine]);
 
   const handleNote = useCallback(
     (event: NoteEvent) => {
@@ -289,15 +327,15 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
       });
       if (event.type !== 'noteon') return;
       if (examRef.current) examApi.play(event.note, event.timestamp);
-      else updateExercise((current) => playNote(current, event.note, event.timestamp));
+      else updateLine((current) => playSequence(current, event.note, event.timestamp));
     },
-    [examApi, examRef, updateExercise],
+    [examApi, examRef, updateLine],
   );
 
   const keyboardBaseNote = useNoteEvents(handleNote, preferences.computerKeyboard);
 
   // Bref signal rouge sur une mauvaise réponse (séance ou examen).
-  const lastAnswer = (exam ? exam.line.current.lastAnswer : exercise?.lastAnswer) ?? null;
+  const lastAnswer = (exam ? exam.line : line)?.current.lastAnswer ?? null;
   const wrongFlash = lastAnswer !== null && !lastAnswer.correct && flashEndedAt !== lastAnswer.at;
   useEffect(() => {
     if (!lastAnswer || lastAnswer.correct) return;
@@ -305,14 +343,14 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
     return () => clearTimeout(timer);
   }, [lastAnswer]);
 
-  // Passage automatique à la note suivante après une bonne réponse.
-  const phase = exercise?.phase;
+  // Passage automatique à la ligne suivante une fois la ligne terminée.
+  const lineDone = line?.done ?? false;
   const { autoAdvance, advanceDelayMs } = preferences;
   useEffect(() => {
-    if (phase !== 'answered' || finished || !autoAdvance) return;
+    if (!lineDone || finished || !autoAdvance) return;
     const timer = setTimeout(advance, advanceDelayMs);
     return () => clearTimeout(timer);
-  }, [phase, finished, autoAdvance, advanceDelayMs, advance]);
+  }, [lineDone, finished, autoAdvance, advanceDelayMs, advance]);
 
   // Une déconnexion du clavier MIDI choisi met en pause.
   useEffect(() => {
@@ -359,25 +397,11 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
   const lastAttempt = attempts.at(-1);
   const timed = preferences.timed;
   const assisted = session?.assisted ?? preferences.showNoteNames;
-  const waitingForEnter = exercise?.phase === 'answered' && !finished && !autoAdvance;
-  const activeState = exam ? exam.line.current : exercise;
+  const waitingForEnter = lineDone && !finished && !autoAdvance;
+  const activeState = (exam ? exam.line : line)?.current;
   const paused = activeState?.phase === 'paused' && !finished && !exam?.result;
-
-  let noteColor: string = COLORS.pending;
-  if (exercise?.phase === 'answered') noteColor = COLORS.correct;
-  else if (wrongFlash) noteColor = COLORS.wrong;
-
-  /** Couleurs de la ligne d'examen : jouées (vert, ou orange si ratées au premier essai), attendue, à venir. */
-  const examNotes: StaffNote[] = exam
-    ? exam.line.notes.map((midi, index) => {
-        const line = exam.line;
-        if (index < line.attempts.length) {
-          return { midi, color: line.attempts[index].firstTryCorrect ? COLORS.correct : COLORS.missed };
-        }
-        if (index === line.position && !line.done) return { midi, color: wrongFlash ? COLORS.wrong : COLORS.current };
-        return { midi, color: COLORS.pending };
-      })
-    : [];
+  const sequenceLevel = level.exercise === 'sequence';
+  const lineSummary = line?.done && sequenceLevel ? summarizeSession(line.attempts) : null;
   const examSummary = exam?.result ? summarizeSession(exam.attempts) : null;
 
   return (
@@ -503,7 +527,7 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
               </div>
             </div>
           ) : exam ? (
-            <StaffView notes={examNotes} clef={level.clef} />
+            <StaffView notes={lineNotes(exam.line, wrongFlash)} clef={level.clef} />
           ) : finished ? (
             <div className="session-summary" role="status">
               <h3>{t.sessionFinished}</h3>
@@ -526,12 +550,10 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
                 {t.newSession} {!examAdvice && <kbd>{t.keyEnter}</kbd>}
               </button>
             </div>
-          ) : exercise ? (
+          ) : line ? (
             <div className="staff-exercise">
-              <StaffView notes={[{ midi: exercise.expected, color: noteColor }]} clef={level.clef} />
-              {assisted && exercise.phase !== 'answered' && (
-                <p className="assisted-name">{noteName(exercise.expected)}</p>
-              )}
+              <StaffView notes={lineNotes(line, wrongFlash)} clef={level.clef} />
+              {assisted && !line.done && <p className="assisted-name">{noteName(line.current.expected)}</p>}
             </div>
           ) : (
             <div className="staff-placeholder">
@@ -565,7 +587,12 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
         </div>
 
         <div className="feedback" aria-live="polite">
-          {!exam && exercise?.phase === 'answered' && lastAttempt && !finished ? (
+          {!exam && lineSummary && !finished ? (
+            <span className={lineSummary.errors === 0 ? 'ok' : ''}>
+              {t.summaryFirstTry(lineSummary.firstTryCorrect, lineSummary.notes, percent(lineSummary.firstTryRate ?? 0))}
+              {timed && lineSummary.medianMs !== null && ` · ${t.summaryMedian(seconds(lineSummary.medianMs))}`}
+            </span>
+          ) : !exam && lineDone && lastAttempt && !finished ? (
             <span className="ok">
               {noteName(lastAttempt.expected)}
               {timed && ` · ${seconds(lastAttempt.timeToCorrectMs)}`}
@@ -573,8 +600,8 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
             </span>
           ) : wrongFlash && lastAnswer && !finished && !exam?.result ? (
             <span className="ko">{t.youPlayed(noteName(lastAnswer.played))}</span>
-          ) : !exam && timed && exercise && !finished && exercise.phase !== 'answered' ? (
-            <LiveTimer stopwatch={exercise.stopwatch} />
+          ) : !exam && timed && line && !finished && !line.done ? (
+            <LiveTimer stopwatch={line.current.stopwatch} />
           ) : (
             <span>&nbsp;</span>
           )}
@@ -591,11 +618,11 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
           </div>
         )}
 
-        {!exam && exercise && !finished && (
+        {!exam && line && !finished && (
           <div className="controls">
             {waitingForEnter && (
               <button type="button" className="primary" onClick={advance}>
-                {t.nextNote} <kbd>{t.keyEnter}</kbd>
+                {sequenceLevel ? t.nextLine : t.nextNote} <kbd>{t.keyEnter}</kbd>
               </button>
             )}
             <button type="button" onClick={togglePause}>
