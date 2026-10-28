@@ -77,7 +77,12 @@ export function LevelPicker({ levels, progress, selected, recommendedId, onSelec
               )}
             </li>
             <li className={current.fastTrack.met ? 'met' : ''}>
-              {t.criterionFastTrack(percent(current.fastTrack.accuracyTarget), seconds(current.fastTrack.speedTargetMs))}
+              {t.criterionFastTrack(
+                current.fastTrack.errors,
+                current.fastTrack.maxErrors,
+                current.fastTrack.window,
+                seconds(current.fastTrack.speedTargetMs),
+              )}
             </li>
             <li className={current.examPassed ? 'met' : ''}>{t.criterionExam(percent(selected.exam.passAccuracy))}</li>
           </ul>

@@ -149,8 +149,9 @@ const fr = {
   criterionSpeed: (current: string, target: string) => `Temps médian : ${current} (objectif ≤ ${target})`,
   criterionRegularity: (sessions: number, targetSessions: number, days: number, targetDays: number) =>
     `Régularité : ${sessions} / ${targetSessions} séances réussies d’affilée, sur ${days} / ${targetDays} jours`,
-  criterionFastTrack: (accuracy: string, time: string) =>
-    `Voie express : ${accuracy} du premier coup et temps médian ≤ ${time} (dispense de la régularité)`,
+  criterionFastTrack: (errors: number | null, maxErrors: number, window: number, time: string) =>
+    `Voie express : au plus ${maxErrors} erreur${maxErrors > 1 ? 's' : ''} sur les ${window} dernières notes` +
+    `${errors === null ? '' : ` (${errors} actuellement)`} et temps médian ≤ ${time} (dispense de la régularité)`,
   onlyRegularityMissing:
     'Très bien ! Il ne manque que la régularité : rejouez ce niveau un autre jour pour le valider, ou visez la voie express.',
   criterionExam: (percent: string) => `Examen de validation : au moins ${percent} du premier coup`,
@@ -376,8 +377,9 @@ const en: Messages = {
   criterionSpeed: (current, target) => `Median time: ${current} (target ≤ ${target})`,
   criterionRegularity: (sessions, targetSessions, days, targetDays) =>
     `Consistency: ${sessions} / ${targetSessions} successful sessions in a row, over ${days} / ${targetDays} days`,
-  criterionFastTrack: (accuracy, time) =>
-    `Fast track: ${accuracy} on first try and median time ≤ ${time} (waives consistency)`,
+  criterionFastTrack: (errors, maxErrors, window, time) =>
+    `Fast track: at most ${maxErrors} error${maxErrors > 1 ? 's' : ''} in the last ${window} notes` +
+    `${errors === null ? '' : ` (currently ${errors})`} and median time ≤ ${time} (waives consistency)`,
   onlyRegularityMissing:
     'Very good! Only consistency is missing: play this level again on another day to master it, or aim for the fast track.',
   criterionExam: (percent) => `Validation exam: at least ${percent} on the first try`,

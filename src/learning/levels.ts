@@ -37,8 +37,8 @@ export interface MasteryCriteria {
    * du critère de régularité (élève qui sait déjà lire). Le volume reste exigé.
    */
   readonly fastTrack: {
-    /** Réussite du premier coup exigée (0–1). */
-    readonly minFirstTryAccuracy: number;
+    /** Nombre maximal de notes ratées au premier essai sur la fenêtre (en nombre, pas en %, pour rester lisible). */
+    readonly maxErrors: number;
     /** Temps médian maximal, en fraction de `maxMedianMs`. */
     readonly maxMedianRatio: number;
   };
@@ -101,7 +101,7 @@ const BASE_MASTERY: MasteryCriteria = {
   minSessionAttempts: 10,
   minSessionAccuracy: 0.85,
   minDays: 2,
-  fastTrack: { minFirstTryAccuracy: 0.98, maxMedianRatio: 1 / 3 },
+  fastTrack: { maxErrors: 1, maxMedianRatio: 1 / 3 },
 };
 
 function notes(...names: string[]): number[] {

@@ -40,7 +40,10 @@ export interface LevelProgress {
   };
   /** Voie express : précision et vitesse exceptionnelles, qui dispensent de la régularité. */
   readonly fastTrack: {
-    readonly accuracyTarget: number;
+    /** Notes ratées au premier essai sur la fenêtre récente (`null` : aucune note). */
+    readonly errors: number | null;
+    readonly maxErrors: number;
+    readonly window: number;
     readonly speedTargetMs: number;
     readonly met: boolean;
   };
@@ -137,13 +140,16 @@ export function evaluateLevel(
   };
 
   const fastTrackSpeedMs = criteria.maxMedianMs * criteria.fastTrack.maxMedianRatio;
+  const recentErrors = recent.length === 0 ? null : recent.filter((attempt) => !attempt.firstTryCorrect).length;
   const fastTrack = {
-    accuracyTarget: criteria.fastTrack.minFirstTryAccuracy,
+    errors: recentErrors,
+    maxErrors: criteria.fastTrack.maxErrors,
+    window: criteria.window,
     speedTargetMs: fastTrackSpeedMs,
     met:
       volume.met &&
-      accuracyValue !== null &&
-      accuracyValue >= criteria.fastTrack.minFirstTryAccuracy &&
+      recentErrors !== null &&
+      recentErrors <= criteria.fastTrack.maxErrors &&
       speedValue !== null &&
       speedValue <= fastTrackSpeedMs,
   };

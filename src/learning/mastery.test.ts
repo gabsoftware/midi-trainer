@@ -14,7 +14,7 @@ const LEVEL: LevelDefinition = {
     minSessionAttempts: 10,
     minSessionAccuracy: 0.85,
     minDays: 2,
-    fastTrack: { minFirstTryAccuracy: 0.98, maxMedianRatio: 0.25 },
+    fastTrack: { maxErrors: 1, maxMedianRatio: 0.25 },
   },
 };
 
@@ -204,7 +204,7 @@ describe('voie express', () => {
   it('valide en une seule séance une performance exceptionnelle', () => {
     const progress = evaluateLevel(LEVEL, session({ day: '2026-10-20', count: 25, timeMs: 450 }));
     expect(progress.regularity.met).toBe(false);
-    expect(progress.fastTrack).toEqual({ accuracyTarget: 0.98, speedTargetMs: 500, met: true });
+    expect(progress.fastTrack).toEqual({ errors: 0, maxErrors: 1, window: 20, speedTargetMs: 500, met: true });
     expect(progress.status).toBe('ready');
   });
 
@@ -214,11 +214,17 @@ describe('voie express', () => {
     expect(progress.status).toBe('learning');
   });
 
-  it('ne s’applique pas en dessous de 98 % de réussite', () => {
-    // 1 erreur sur 20 notes = 95 %, au-dessus de l'objectif normal mais pas de la voie express.
+  it('tolère une erreur sur la fenêtre', () => {
     const progress = evaluateLevel(LEVEL, session({ day: '2026-10-20', count: 20, misses: 1, timeMs: 300 }));
+    expect(progress.fastTrack).toMatchObject({ errors: 1, met: true });
+    expect(progress.status).toBe('ready');
+  });
+
+  it('ne s’applique pas à partir de deux erreurs sur la fenêtre', () => {
+    // 2 erreurs sur 20 notes = 90 % : objectif normal atteint, mais pas la voie express.
+    const progress = evaluateLevel(LEVEL, session({ day: '2026-10-20', count: 20, misses: 2, timeMs: 300 }));
     expect(progress.accuracy.met).toBe(true);
-    expect(progress.fastTrack.met).toBe(false);
+    expect(progress.fastTrack).toMatchObject({ errors: 2, met: false });
     expect(progress.status).toBe('learning');
   });
 

@@ -91,7 +91,7 @@ Sous WSL2, lancez `npm run dev` dans WSL et ouvrez `http://localhost:5173` dans 
   - **Vitesse** : un temps de reconnaissance médian, pris sur les notes trouvées du premier coup.
   - **Régularité** : les dernières séances réussies d'affilée, réparties sur plusieurs jours.
 
-  **Voie express** : un élève qui sait déjà lire n'a pas à attendre un deuxième jour. Si le volume est atteint et que, sur les dernières notes, la réussite du premier coup est d'au moins 98 % avec un temps médian d'au plus un tiers de l'objectif, la régularité n'est pas exigée. Ces seuils sont réglables par niveau.
+  **Voie express** : un élève qui sait déjà lire n'a pas à attendre un deuxième jour. Si le volume est atteint et que, sur les 40 dernières notes, il y a au plus 1 note ratée au premier essai avec un temps médian d'au plus un tiers de l'objectif, la régularité n'est pas exigée. Ces seuils sont réglables par niveau.
 
   Une séance ratée remet la régularité à zéro. Si un niveau exige l'octave exacte, les notes jouées en octave libre ne comptent pas. Les niveaux ne sont pas verrouillés : le cahier des charges demande un choix manuel, donc l'application conseille au lieu d'imposer.
 - **Élèves** : profils locaux, sans authentification (pas de backend). Chaque séance et chaque tentative porte l'identifiant de l'élève, et la base indexe par élève. Supprimer un élève efface son historique dans la même transaction. Les réglages sont rangés par élève dans `localStorage`. La langue et le clavier MIDI sont communs à l'appareil.
