@@ -1,8 +1,14 @@
 import { median } from '../statistics/basic';
-import type { AttemptRecord } from '../storage/records';
+import type { AttemptRecord, SessionRecord } from '../storage/records';
 import type { LevelDefinition } from './levels';
 
-export type LevelStatus = 'new' | 'learning' | 'mastered';
+/**
+ * - `new` : jamais joué ;
+ * - `learning` : en cours ;
+ * - `ready` : critères de maîtrise remplis, examen de validation à passer ;
+ * - `mastered` : examen réussi. Un niveau validé le reste.
+ */
+export type LevelStatus = 'new' | 'learning' | 'ready' | 'mastered';
 
 export interface Criterion<T> {
   readonly current: T;
@@ -13,6 +19,10 @@ export interface Criterion<T> {
 export interface LevelProgress {
   readonly levelId: string;
   readonly status: LevelStatus;
+  /** Critères de maîtrise remplis (volume, précision, vitesse, régularité ou voie express). */
+  readonly criteriaMet: boolean;
+  /** Examen de validation réussi au moins une fois. */
+  readonly examPassed: boolean;
   /** Notes prises en compte pour ce niveau. */
   readonly attemptCount: number;
   readonly volume: Criterion<number>;
@@ -69,7 +79,15 @@ export function recognitionMedian(
 }
 
 /** `attempts` : historique complet, trié par date croissante. */
-export function evaluateLevel(level: LevelDefinition, attempts: readonly AttemptRecord[]): LevelProgress {
+/**
+ * `attempts` : historique complet de l'élève, trié par date croissante.
+ * `sessions` : ses séances, pour retrouver les examens réussis.
+ */
+export function evaluateLevel(
+  level: LevelDefinition,
+  attempts: readonly AttemptRecord[],
+  sessions: readonly Pick<SessionRecord, 'levelId' | 'mode' | 'exam'>[] = [],
+): LevelProgress {
   const criteria = level.mastery;
   const relevant = attemptsForLevel(level, attempts);
   const recent = relevant.slice(-criteria.window);
@@ -130,10 +148,18 @@ export function evaluateLevel(level: LevelDefinition, attempts: readonly Attempt
       speedValue <= fastTrackSpeedMs,
   };
 
-  const mastered = volume.met && accuracy.met && speed.met && (regularity.met || fastTrack.met);
+  const criteriaMet = volume.met && accuracy.met && speed.met && (regularity.met || fastTrack.met);
+  const examPassed = sessions.some(
+    (session) => session.levelId === level.id && session.mode === 'exam' && session.exam?.passed === true,
+  );
+  let status: LevelStatus = relevant.length === 0 ? 'new' : 'learning';
+  if (examPassed) status = 'mastered';
+  else if (criteriaMet) status = 'ready';
   return {
     levelId: level.id,
-    status: mastered ? 'mastered' : relevant.length === 0 ? 'new' : 'learning',
+    status,
+    criteriaMet,
+    examPassed,
     attemptCount: relevant.length,
     volume,
     accuracy,

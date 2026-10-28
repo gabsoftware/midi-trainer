@@ -1,14 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
-import { Accidental, Formatter, Renderer, Stave, StaveConnector, StaveNote, Voice } from 'vexflow/bravura';
+import {
+  Accidental,
+  Formatter,
+  GhostNote,
+  Renderer,
+  Stave,
+  StaveConnector,
+  StaveNote,
+  Voice,
+  type Tickable,
+} from 'vexflow/bravura';
 import { useI18n } from '../i18n/context';
 import { staffForNote, type LevelClef } from '../learning/levels';
 import { midiToPitch, toVexflowKey } from '../music/pitch';
 
-interface StaffViewProps {
+export interface StaffNote {
   readonly midi: number;
+  /** Couleur de la note (feedback, note attendue…) ; la portée reste noire. */
+  readonly color: string;
+}
+
+interface StaffViewProps {
+  /** Une note (exercice note isolée) ou une ligne de notes (examen), affichées en rondes, sans rythme. */
+  readonly notes: readonly StaffNote[];
   readonly clef: LevelClef;
-  /** Couleur de la note (feedback) ; la portée reste noire. */
-  readonly noteColor?: string;
 }
 
 /**
@@ -16,10 +31,11 @@ interface StaffViewProps {
  * Une portée VexFlow commence 40 unités sous son `y` (4 interlignes de marge) et mesure 40 unités.
  * Les marges couvrent 4 degrés de lignes supplémentaires au-dessus et en dessous.
  */
-const LAYOUT = {
-  single: { width: 240, height: 190, staves: { treble: 45, bass: 45 } },
-  grand: { width: 260, height: 260, staves: { treble: 20, bass: 120 } },
-} as const;
+const HEIGHT = { single: 190, grand: 260 } as const;
+const STAVE_Y = { single: { treble: 45, bass: 45 }, grand: { treble: 20, bass: 120 } } as const;
+/** Largeur logique : une note seule, ou une place par note pour une ligne. */
+const SINGLE_WIDTH = 240;
+const WIDTH_PER_NOTE = 46;
 const MAX_SCALE = 2.4;
 
 /**
@@ -29,7 +45,15 @@ const MAX_SCALE = 2.4;
  */
 const fontsReady = Promise.all([document.fonts.load('30px Bravura'), document.fonts.load('12px Academico')]);
 
-export function StaffView({ midi, clef, noteColor = '#111' }: StaffViewProps) {
+function parseNotesKey(key: string): StaffNote[] {
+  if (!key) return [];
+  return key.split(',').map((item) => {
+    const [midi, color] = item.split(':');
+    return { midi: Number(midi), color };
+  });
+}
+
+export function StaffView({ notes, clef }: StaffViewProps) {
   const { t } = useI18n();
   const containerRef = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
@@ -51,47 +75,69 @@ export function StaffView({ midi, clef, noteColor = '#111' }: StaffViewProps) {
     return () => observer.disconnect();
   }, []);
 
+  // Clé de dessin stable : on ne redessine que si les notes ou leurs couleurs changent.
+  const notesKey = notes.map((note) => `${note.midi}:${note.color}`).join(',');
+
   useEffect(() => {
     const element = containerRef.current;
-    if (!element || !fontsLoaded || width === 0) return;
+    const notes = parseNotesKey(notesKey);
+    if (!element || !fontsLoaded || width === 0 || notes.length === 0) return;
     element.replaceChildren();
 
-    const layout = clef === 'grand' ? LAYOUT.grand : LAYOUT.single;
-    const scale = Math.min(MAX_SCALE, width / layout.width);
+    const grand = clef === 'grand';
+    const single = notes.length === 1;
+    const left = grand ? 30 : 10;
+    const logicalWidth = single ? SINGLE_WIDTH + (grand ? 20 : 0) : left + 70 + notes.length * WIDTH_PER_NOTE;
+    const height = grand ? HEIGHT.grand : HEIGHT.single;
+    const scale = Math.min(MAX_SCALE, width / logicalWidth);
     const renderer = new Renderer(element, Renderer.Backends.SVG);
-    renderer.resize(layout.width * scale, layout.height * scale);
+    renderer.resize(logicalWidth * scale, height * scale);
     const context = renderer.getContext();
     context.scale(scale, scale);
 
-    // Portées à dessiner : une seule, ou les deux du grand système reliées par une accolade.
-    const staffClefs = clef === 'grand' ? (['treble', 'bass'] as const) : ([clef] as const);
-    const left = clef === 'grand' ? 30 : 10;
+    // Portées : une seule, ou les deux du grand système reliées par une accolade.
+    const staffClefs = grand ? (['treble', 'bass'] as const) : ([clef] as const);
+    const staveY = grand ? STAVE_Y.grand : STAVE_Y.single;
     const staves = new Map(
       staffClefs.map((staffClef) => {
-        const stave = new Stave(left, layout.staves[staffClef], layout.width - left - 10);
+        const stave = new Stave(left, staveY[staffClef], logicalWidth - left - 10);
         stave.addClef(staffClef).setContext(context).draw();
         return [staffClef, stave] as const;
       }),
     );
-    if (clef === 'grand') {
+    if (grand) {
       const [top, bottom] = [staves.get('treble')!, staves.get('bass')!];
       new StaveConnector(top, bottom).setType('brace').setContext(context).draw();
       new StaveConnector(top, bottom).setType('singleLeft').setContext(context).draw();
     }
 
-    const staffClef = staffForNote(clef, midi);
-    const stave = staves.get(staffClef)!;
-    const pitch = midiToPitch(midi);
-    const note = new StaveNote({ keys: [toVexflowKey(pitch)], duration: 'w', clef: staffClef, alignCenter: true });
-    if (pitch.alter !== 0) {
-      note.addModifier(new Accidental(pitch.alter > 0 ? '#' : 'b'), 0);
-    }
-    note.setStyle({ fillStyle: noteColor, strokeStyle: noteColor });
+    // Une voix par portée ; sur le grand système, une note de l'autre portée laisse une place vide
+    // (GhostNote) pour que les deux voix restent alignées.
+    const voices = staffClefs.map((staffClef) => {
+      const tickables: Tickable[] = notes.map(({ midi, color }) => {
+        if (staffForNote(clef, midi) !== staffClef) {
+          return new GhostNote({ duration: 'w' });
+        }
+        const pitch = midiToPitch(midi);
+        const note = new StaveNote({ keys: [toVexflowKey(pitch)], duration: 'w', clef: staffClef, alignCenter: single });
+        if (pitch.alter !== 0) {
+          note.addModifier(new Accidental(pitch.alter > 0 ? '#' : 'b'), 0);
+        }
+        return note.setStyle({ fillStyle: color, strokeStyle: color });
+      });
+      const voice = new Voice({ numBeats: 4 * notes.length, beatValue: 4 }).setMode(Voice.Mode.SOFT);
+      return { voice: voice.addTickables(tickables), stave: staves.get(staffClef)! };
+    });
 
-    const voice = new Voice({ numBeats: 4, beatValue: 4 }).addTickables([note]);
-    new Formatter().joinVoices([voice]).formatToStave([voice], stave);
-    voice.draw(context, stave);
-  }, [midi, clef, noteColor, width, fontsLoaded]);
+    const reference = voices[0].stave;
+    const formatter = new Formatter();
+    for (const { voice } of voices) formatter.joinVoices([voice]);
+    formatter.format(
+      voices.map(({ voice }) => voice),
+      reference.getNoteEndX() - reference.getNoteStartX() - 10,
+    );
+    for (const { voice, stave } of voices) voice.draw(context, stave);
+  }, [notesKey, clef, width, fontsLoaded]);
 
-  return <div ref={containerRef} className="staff" role="img" aria-label={t.staffLabel} />;
+  return <div ref={containerRef} className={notes.length > 1 ? 'staff line' : 'staff'} role="img" aria-label={t.staffLabel} />;
 }

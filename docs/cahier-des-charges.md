@@ -247,17 +247,17 @@ Ne pas implémenter immédiatement les fonctionnalités avancées (lecture à de
 
 ## 13. Critères d'acceptation de la V1
 
-- [ ] L'application fonctionne localement avec `npm run dev`.
-- [ ] L'utilisateur peut sélectionner son clavier MIDI.
-- [ ] Une note apparaît sur une portée en clé de sol.
-- [ ] Une mauvaise touche MIDI est détectée sans faire avancer l'exercice.
-- [ ] Une bonne touche valide la note et fait progresser l'exercice.
-- [ ] Les temps de réponse sont mesurés avec une horloge monotone.
-- [ ] Le changement de périphérique MIDI n'entraîne pas de listeners dupliqués.
-- [ ] Une déconnexion du clavier met l'exercice en pause.
-- [ ] Les résultats restent disponibles après rechargement de la page.
-- [ ] L'utilisateur peut effectuer une séance complète sans utiliser la souris après le démarrage.
-- [ ] Les tests unitaires des fonctions musicales et de validation passent.
+- [x] L'application fonctionne localement avec `npm run dev`.
+- [x] L'utilisateur peut sélectionner son clavier MIDI.
+- [x] Une note apparaît sur une portée en clé de sol.
+- [x] Une mauvaise touche MIDI est détectée sans faire avancer l'exercice.
+- [x] Une bonne touche valide la note et fait progresser l'exercice.
+- [x] Les temps de réponse sont mesurés avec une horloge monotone.
+- [x] Le changement de périphérique MIDI n'entraîne pas de listeners dupliqués.
+- [x] Une déconnexion du clavier met l'exercice en pause.
+- [x] Les résultats restent disponibles après rechargement de la page.
+- [x] L'utilisateur peut effectuer une séance complète sans utiliser la souris après le démarrage.
+- [x] Les tests unitaires des fonctions musicales et de validation passent.
 
 ## 14. Consignes de développement
 
@@ -285,3 +285,6 @@ Ne pas implémenter immédiatement les fonctionnalités avancées (lecture à de
 | 2026-10-28 | **Firefox pris en charge** en plus de Chrome et Edge (section 2) : vérifié par l'utilisateur ; Firefox accorde l'accès MIDI par un module d'autorisation de site. Les navigateurs sans Web MIDI (Safari) affichent un message et restent utilisables avec le clavier de l'ordinateur. |
 | 2026-10-28 | **Choix adaptatif des notes** : poids par note selon ses 5 dernières tentatives (ratée ×1,8, lente ×1, rapide ×0,7), note jamais jouée 1,5, bornes [0,25 ; 4], jamais deux fois la même note de suite. |
 | 2026-10-28 | **Séances et réglages** : séances de N notes avec bilan ; mode entraînement par défaut (temps mesurés mais non affichés) ; Entrée ne relance jamais une séance en cours. Mode assisté marqué dans l'historique (schéma 2, première mise à niveau de données) et exclu de la maîtrise et de l'adaptation. Clavier affiché jouable à la souris et au doigt. |
+| 2026-10-28 | **Statistiques** : tableau de bord par élève, filtrable par niveau ; mode assisté exclu. Ouvrir les statistiques termine la séance en cours (notes déjà enregistrées). Avec cet écran, le périmètre V1 (section 12) est couvert. |
+| 2026-10-28 | **Examen de validation de niveau** (demande de l'utilisateur) : proposé une fois les critères de maîtrise remplis ; lignes de notes à jouer dans l'ordre (mode B), générées l'une après l'autre ; taille croissante avec le niveau (niveau 1 : 5 lignes de 4 à 6 notes) ; réussi à ≥ 90 % du premier coup ; nouvel essai immédiat en cas d'échec. Un niveau n'est « maîtrisé » qu'après l'examen, et le reste. |
+| 2026-10-28 | **Écran des réglages** séparé, par élève, ouvert par un bouton ⚙ à côté du nom de l'élève. |

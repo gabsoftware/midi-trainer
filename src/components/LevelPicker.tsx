@@ -16,7 +16,12 @@ export function LevelPicker({ levels, progress, selected, recommendedId, onSelec
   const statusLabel = (level: LevelDefinition): string => {
     if (!level.available) return t.statusUnavailable;
     const status = progress.get(level.id)?.status ?? 'new';
-    const label = { mastered: t.statusMastered, learning: t.statusLearning, new: t.statusNew }[status];
+    const label = {
+      mastered: t.statusMastered,
+      ready: t.statusReady,
+      learning: t.statusLearning,
+      new: t.statusNew,
+    }[status];
     return level.id === recommendedId ? `${label}, ${t.recommended}` : label;
   };
 
@@ -74,8 +79,9 @@ export function LevelPicker({ levels, progress, selected, recommendedId, onSelec
             <li className={current.fastTrack.met ? 'met' : ''}>
               {t.criterionFastTrack(percent(current.fastTrack.accuracyTarget), seconds(current.fastTrack.speedTargetMs))}
             </li>
+            <li className={current.examPassed ? 'met' : ''}>{t.criterionExam(percent(selected.exam.passAccuracy))}</li>
           </ul>
-          {current.status !== 'mastered' &&
+          {!current.criteriaMet &&
             current.volume.met &&
             current.accuracy.met &&
             current.speed.met &&

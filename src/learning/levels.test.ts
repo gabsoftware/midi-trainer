@@ -47,6 +47,26 @@ describe('LEVELS', () => {
     }
   });
 
+  it('propose un examen dont la taille augmente avec le niveau', () => {
+    const playable = LEVELS.filter((level) => level.available);
+    const averageNotes = playable.map(({ exam }) => (exam.lines * (exam.notesPerLine.min + exam.notesPerLine.max)) / 2);
+    for (let index = 1; index < averageNotes.length; index++) {
+      expect(averageNotes[index], playable[index].id).toBeGreaterThan(averageNotes[index - 1]);
+    }
+    expect(LEVELS[0].exam).toMatchObject({ lines: 5, notesPerLine: { min: 4, max: 6 } });
+  });
+
+  it('a des examens cohérents (3 à 8 notes par ligne, seuil de réussite de 90 %)', () => {
+    for (const { id, exam, notes } of LEVELS) {
+      expect(exam.notesPerLine.min, id).toBeGreaterThanOrEqual(3);
+      expect(exam.notesPerLine.max, id).toBeLessThanOrEqual(8);
+      expect(exam.notesPerLine.min, id).toBeLessThanOrEqual(exam.notesPerLine.max);
+      expect(exam.maxLeap, id).toBeGreaterThanOrEqual(2);
+      expect(exam.passAccuracy, id).toBe(0.9);
+      expect(notes.length, id).toBeGreaterThan(1);
+    }
+  });
+
   it('reprend les notes du cahier des charges pour les premiers niveaux', () => {
     expect(findLevel('level-1')?.notes).toEqual([64, 67, 71]); // Mi, Sol, Si
     expect(findLevel('level-2')?.notes).toEqual([64, 65, 67, 69, 71]); // + Fa, La

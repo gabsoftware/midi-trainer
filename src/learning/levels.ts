@@ -44,6 +44,24 @@ export interface MasteryCriteria {
   };
 }
 
+/**
+ * Examen de validation d'un niveau : des lignes de notes à jouer dans l'ordre (sans rythme),
+ * chaque ligne étant générée quand la précédente est terminée. Le nombre de notes augmente
+ * avec le niveau.
+ */
+export interface ExamDefinition {
+  readonly lines: number;
+  readonly notesPerLine: { readonly min: number; readonly max: number };
+  /** Écart maximal entre deux notes successives, en degrés (2 = tierce, 4 = quinte). */
+  readonly maxLeap: number;
+  /** Réussite du premier coup exigée sur l'ensemble de l'examen (0–1). */
+  readonly passAccuracy: number;
+}
+
+function exam(lines: number, min: number, max: number, maxLeap: number): ExamDefinition {
+  return { lines, notesPerLine: { min, max }, maxLeap, passAccuracy: 0.9 };
+}
+
 export interface LevelDefinition {
   readonly id: string;
   readonly number: number;
@@ -58,6 +76,8 @@ export interface LevelDefinition {
   /** En dessous de ce temps, une bonne réponse est considérée comme rapide (adaptation). */
   readonly fastResponseMs: number;
   readonly mastery: MasteryCriteria;
+  /** Examen de validation, proposé une fois les critères de maîtrise remplis. */
+  readonly exam: ExamDefinition;
   /** `false` : niveau prévu mais pas encore jouable. */
   readonly available: boolean;
 }
@@ -93,6 +113,7 @@ export const LEVELS: readonly LevelDefinition[] = [
     defaultOctaveMode: 'any',
     fastResponseMs: 1500,
     mastery: { ...BASE_MASTERY, minAttempts: 30, window: 30, maxMedianMs: 2000 },
+    exam: exam(5, 4, 6, 4),
     available: true,
   },
   {
@@ -109,6 +130,7 @@ export const LEVELS: readonly LevelDefinition[] = [
     defaultOctaveMode: 'any',
     fastResponseMs: 1500,
     mastery: { ...BASE_MASTERY, maxMedianMs: 2200 },
+    exam: exam(5, 5, 7, 4),
     available: true,
   },
   {
@@ -125,6 +147,7 @@ export const LEVELS: readonly LevelDefinition[] = [
     defaultOctaveMode: 'any',
     fastResponseMs: 1600,
     mastery: BASE_MASTERY,
+    exam: exam(6, 5, 7, 4),
     available: true,
   },
   {
@@ -141,6 +164,7 @@ export const LEVELS: readonly LevelDefinition[] = [
     defaultOctaveMode: 'exact',
     fastResponseMs: 1800,
     mastery: { ...BASE_MASTERY, minAttempts: 60, window: 60, maxMedianMs: 3000 },
+    exam: exam(6, 6, 8, 5),
     available: true,
   },
   {
@@ -157,6 +181,7 @@ export const LEVELS: readonly LevelDefinition[] = [
     defaultOctaveMode: 'any',
     fastResponseMs: 1600,
     mastery: { ...BASE_MASTERY, maxMedianMs: 2500 },
+    exam: exam(7, 6, 8, 4),
     available: true,
   },
   {
@@ -173,6 +198,7 @@ export const LEVELS: readonly LevelDefinition[] = [
     defaultOctaveMode: 'exact',
     fastResponseMs: 1800,
     mastery: { ...BASE_MASTERY, minAttempts: 60, window: 60, maxMedianMs: 3000 },
+    exam: exam(7, 7, 8, 5),
     available: true,
   },
   {
@@ -189,6 +215,7 @@ export const LEVELS: readonly LevelDefinition[] = [
     defaultOctaveMode: 'exact',
     fastResponseMs: 1500,
     mastery: BASE_MASTERY,
+    exam: exam(7, 7, 8, 5),
     available: false,
   },
   {
@@ -205,6 +232,7 @@ export const LEVELS: readonly LevelDefinition[] = [
     defaultOctaveMode: 'exact',
     fastResponseMs: 2000,
     mastery: { ...BASE_MASTERY, minAttempts: 80, window: 60, maxMedianMs: 3000 },
+    exam: exam(8, 7, 8, 5),
     available: true,
   },
   {
@@ -221,6 +249,7 @@ export const LEVELS: readonly LevelDefinition[] = [
     defaultOctaveMode: 'exact',
     fastResponseMs: 2500,
     mastery: BASE_MASTERY,
+    exam: exam(8, 7, 8, 5),
     available: false,
   },
   {
@@ -237,6 +266,7 @@ export const LEVELS: readonly LevelDefinition[] = [
     defaultOctaveMode: 'exact',
     fastResponseMs: 2500,
     mastery: BASE_MASTERY,
+    exam: exam(8, 7, 8, 5),
     available: false,
   },
 ];

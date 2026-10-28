@@ -21,14 +21,29 @@ Le cahier des charges complet et le journal des décisions sont dans [docs/cahie
 
 - **Choix adaptatif des notes** : les notes ratées reviennent plus souvent, les notes reconnues rapidement moins souvent.
 - **Séances** de 10, 20, 30 ou 50 notes, ou libres. Un bilan s'affiche à la fin : réussite du premier coup, erreurs, notes à revoir et, en mode chronométré, temps médian.
-- **Réglages par élève** :
+- **Examen de validation** de chaque niveau, proposé une fois les critères de maîtrise remplis :
+  - des lignes de notes à jouer dans l'ordre, chaque ligne générée quand la précédente est terminée ;
+  - de plus en plus de notes avec le niveau (niveau 1 : 5 lignes de 4 à 6 notes) ;
+  - réussi avec au moins 90 % de notes trouvées du premier coup ; le niveau est alors validé et le niveau suivant proposé ;
+  - en cas d'échec, nouvel essai immédiat possible.
+- **Réglages par élève**, sur un écran dédié (bouton ⚙ à côté du nom de l'élève) :
   - mode entraînement (aucun temps affiché) ou chronométré (chronomètre en direct) ;
   - passage automatique à la note suivante et son délai, ou Entrée ;
   - mode assisté (nom des notes affiché ; ces notes ne comptent ni pour la maîtrise ni pour l'adaptation) ;
   - octave, simulation au clavier d'ordinateur.
-- **Clavier affiché jouable** à la souris ou au doigt. Les touches noires sont placées comme sur un vrai clavier.
+- **Clavier affiché jouable** à la souris ou au doigt. Sa géométrie est celle d'un clavier à demi-tons égaux : touches noires centrées sur leur demi-ton, Do–Ré–Mi un peu plus étroites que Fa–Sol–La–Si (22 mm contre 23 mm sur une octave de 158 mm).
 
-Pas encore implémentés : statistiques, séquences.
+- **Statistiques** par élève, filtrables par niveau :
+  - notes jouées et séances ;
+  - réussite du premier coup, distinguée des notes trouvées après erreur ;
+  - temps de reconnaissance médian et moyen ;
+  - évolution par séance (graphiques avec infobulles, et tableau des données) ;
+  - notes les plus difficiles, détail par note, progression par niveau ;
+  - effacement de l'historique avec confirmation.
+
+  Les notes en mode assisté sont exclues et comptées à part.
+
+Pas encore implémentés : séquences (niveau 7), accords et altérations (niveau 9), rythme (niveau 10).
 
 ## Démarrage
 
@@ -106,15 +121,17 @@ src/
   midi/        events.ts (décodage des messages), MidiInputManager.ts (accès, périphériques, branchement à chaud),
                computerKeyboard.ts (simulation)
   music/       pitch.ts (conversions MIDI ↔ hauteur, noms de notes, clés VexFlow), validation.ts (octave exacte/indifférente)
-  exercises/   singleNote.ts (exercice note isolée : validation, chronomètre, pauses)
+  exercises/   singleNote.ts (exercice note isolée : validation, chronomètre, pauses),
+               sequence.ts (suite de notes dans l'ordre, mode B), lineGenerator.ts (lignes de l'examen)
   learning/    levels.ts (parcours en 10 niveaux), mastery.ts (critères de maîtrise, niveau conseillé),
                adaptive.ts (fréquence des notes)
-  statistics/  basic.ts (médiane, moyenne)
+  statistics/  basic.ts (médiane, moyenne), session.ts (bilan de séance), stats.ts (tableau de bord), ticks.ts
   storage/     records.ts (format et validation des enregistrements), historyStore.ts (IndexedDB / mémoire),
                HistoryService.ts (élèves, cache, file d'écriture, erreurs), preferences.ts (réglages par élève),
                backup.ts (sauvegarde JSON), upgrades.ts (mise à niveau des enregistrements)
   i18n/        locale.ts, messages.ts (dictionnaires fr / en), context.ts, I18nProvider.tsx
-  hooks/       useMidi.ts, useHistory.ts, useKeyLabels.ts (ponts entre les services et React)
-  components/  Trainer, LevelPicker, ProfilePicker, StaffView (VexFlow), MidiStatus, PianoKeys
+  hooks/       useMidi.ts, useHistory.ts, useExam.ts, useBackupImport.tsx, useKeyLabels.ts
+  components/  Trainer, StatsView, SettingsView, LineChart, LevelPicker, ProfilePicker, WelcomeName, StaffView (VexFlow),
+               MidiStatus, PianoKeys, LiveTimer
   App.tsx      en-tête (élève, état MIDI, langue), écran « Qui joue ? » ou écran d'entraînement
 ```

@@ -334,6 +334,405 @@ input {
   font-size: 0.9rem;
 }
 
+.main-nav {
+  display: flex;
+  gap: 0.25rem;
+  margin-right: auto;
+}
+
+.main-nav button {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+.main-nav button.current {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.stats {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.stats h3 {
+  margin: 0 0 0.6rem;
+  font-size: 1rem;
+}
+
+.stats-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.stats-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.stats-empty {
+  color: var(--muted);
+  padding: 2rem 0;
+  text-align: center;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.kpi-label {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.kpi-value {
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.kpi-detail {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.charts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 0.75rem;
+}
+
+.chart {
+  margin: 0;
+  padding: 0.75rem 0.9rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.chart figcaption {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.25rem;
+}
+
+.chart-plot {
+  position: relative;
+}
+
+.chart-plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.chart-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.chart-tick {
+  fill: var(--muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-line {
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.chart-dot {
+  fill: var(--accent);
+  stroke: var(--surface);
+  stroke-width: 2;
+}
+
+.chart-crosshair {
+  stroke: var(--muted);
+  stroke-width: 1;
+}
+
+.chart-hit {
+  fill: transparent;
+}
+
+.chart-tooltip {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.08);
+  font-size: 0.8rem;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.chart-tooltip span {
+  color: var(--muted);
+}
+
+.data-table {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.data-table summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.table-scroll {
+  overflow-x: auto;
+}
+
+.stats table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.stats th,
+.stats td {
+  text-align: left;
+  padding: 0.35rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.stats th {
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.stats .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.stats tr.mastered td:nth-child(2) {
+  color: var(--ok);
+}
+
+.bar-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.bar-track {
+  flex: 1;
+  min-width: 60px;
+  max-width: 160px;
+  height: 8px;
+  border-radius: 4px;
+  background: #e8edf9;
+  overflow: hidden;
+}
+
+.bar-fill {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--accent);
+}
+
+.hardest {
+  margin: 0;
+  padding-left: 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.hardest li span {
+  margin-left: 0.6rem;
+  color: var(--muted);
+}
+
+.danger-zone {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.danger-zone .hint {
+  margin: 0 0 0.6rem;
+}
+
+.student-tools {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem;
+  color: var(--muted);
+}
+
+.icon-button:hover,
+.icon-button.current {
+  color: var(--text);
+}
+
+.icon-button.current {
+  border-color: var(--accent);
+}
+
+.settings {
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.settings h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.settings > .hint {
+  margin: -0.5rem 0 0;
+}
+
+.settings-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  padding: 1rem 1.1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.settings-group h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.settings-group label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.settings-group .hint {
+  margin: 0;
+}
+
+.settings-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+}
+
+.keyboard-hint {
+  margin: 0;
+}
+
+.staff.line {
+  max-width: 100%;
+}
+
+.session-summary h3.passed {
+  color: var(--ok);
+}
+
+.session-summary h3.failed {
+  color: #c2410c;
+}
+
+.options h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.option-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 0.75rem;
+}
+
+.staff-exercise {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.assisted-name {
+  margin: 0;
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.live-timer {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.session-summary {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 1rem;
+}
+
+.session-summary h3 {
+  margin: 0;
+  font-size: 1.3rem;
+}
+
+.session-summary p {
+  margin: 0;
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.05rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 0.75rem;
+  vertical-align: 0.1em;
+}
+
 .browser-notice {
   margin-bottom: 1rem;
   padding: 0.75rem 1rem;

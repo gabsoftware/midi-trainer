@@ -75,7 +75,7 @@ describe('evaluateLevel', () => {
   it('valide un niveau réussi sur deux séances, deux jours différents', () => {
     const attempts = [...session({ day: '2026-10-20', count: 10 }), ...session({ day: '2026-10-21', count: 10 })];
     const progress = evaluateLevel(LEVEL, attempts);
-    expect(progress.status).toBe('mastered');
+    expect(progress.status).toBe('ready');
     expect(progress.accuracy.current).toBe(1);
     expect(progress.speed.current).toBe(1000);
     expect(progress.regularity).toMatchObject({ sessions: 2, days: 2, met: true });
@@ -134,7 +134,7 @@ describe('evaluateLevel', () => {
     const progress = evaluateLevel(LEVEL, attempts);
     expect(progress.attemptCount).toBe(40);
     expect(progress.accuracy.current).toBe(1);
-    expect(progress.status).toBe('mastered');
+    expect(progress.status).toBe('ready');
   });
 
   it('ne compte pas les tentatives en mode assisté', () => {
@@ -162,12 +162,50 @@ describe('evaluateLevel', () => {
   });
 });
 
+describe('examen de validation', () => {
+  const ready = () => [...session({ day: '2026-10-20', count: 10 }), ...session({ day: '2026-10-21', count: 10 })];
+  const examSession = (passed: boolean, levelId = LEVEL.id) => ({
+    levelId,
+    mode: 'exam' as const,
+    exam: { passed, notes: 25, firstTryRate: passed ? 0.96 : 0.8 },
+  });
+
+  it('les critères remplis rendent le niveau prêt pour l’examen, pas encore maîtrisé', () => {
+    const progress = evaluateLevel(LEVEL, ready());
+    expect(progress).toMatchObject({ status: 'ready', criteriaMet: true, examPassed: false });
+  });
+
+  it('un examen réussi valide le niveau', () => {
+    expect(evaluateLevel(LEVEL, ready(), [examSession(true)]).status).toBe('mastered');
+  });
+
+  it('un examen raté laisse le niveau prêt pour une nouvelle tentative', () => {
+    expect(evaluateLevel(LEVEL, ready(), [examSession(false)]).status).toBe('ready');
+  });
+
+  it('ne tient compte que des examens de ce niveau', () => {
+    expect(evaluateLevel(LEVEL, ready(), [examSession(true, 'level-2')]).status).toBe('ready');
+  });
+
+  it('un niveau validé le reste, même si les résultats récents baissent', () => {
+    const later = session({ day: '2026-10-25', count: 40, misses: 20 });
+    const progress = evaluateLevel(LEVEL, [...ready(), ...later], [examSession(true)]);
+    expect(progress.criteriaMet).toBe(false);
+    expect(progress.status).toBe('mastered');
+  });
+
+  it('les notes jouées pendant un examen ne comptent pas pour les critères des séances', () => {
+    const examNotes = session({ day: '2026-10-20', count: 30 }).map((a) => ({ ...a, mode: 'exam' as const }));
+    expect(evaluateLevel(LEVEL, examNotes).attemptCount).toBe(0);
+  });
+});
+
 describe('voie express', () => {
   it('valide en une seule séance une performance exceptionnelle', () => {
     const progress = evaluateLevel(LEVEL, session({ day: '2026-10-20', count: 25, timeMs: 450 }));
     expect(progress.regularity.met).toBe(false);
     expect(progress.fastTrack).toEqual({ accuracyTarget: 0.98, speedTargetMs: 500, met: true });
-    expect(progress.status).toBe('mastered');
+    expect(progress.status).toBe('ready');
   });
 
   it('exige quand même le volume minimal', () => {

@@ -30,7 +30,16 @@ export function createProfileRecord(id: string, name: string, now: Date): Profil
   return { schema: RECORD_SCHEMA, id, name: normalizeProfileName(name), createdAt: now.toISOString() };
 }
 
-export type ExerciseMode = 'single' | 'sequence';
+/** `exam` : examen de validation d'un niveau (lignes de notes). */
+export type ExerciseMode = 'single' | 'sequence' | 'exam';
+
+/** Résultat d'un examen terminé, enregistré sur sa séance. */
+export interface ExamResult {
+  readonly passed: boolean;
+  readonly notes: number;
+  /** Réussite du premier coup sur l'ensemble de l'examen (0–1). */
+  readonly firstTryRate: number;
+}
 export type ClefName = 'treble' | 'bass' | 'grand';
 
 /** Contexte d'exercice commun à une séance et à ses tentatives. */
@@ -54,6 +63,8 @@ export interface SessionRecord extends ExerciseContext {
   /** Date et heure de la dernière note réussie. */
   readonly lastActivityAt: string;
   readonly attemptCount: number;
+  /** Présent seulement sur un examen terminé (champ facultatif : aucune mise à niveau nécessaire). */
+  readonly exam?: ExamResult;
 }
 
 export interface AttemptRecord extends ExerciseContext {
@@ -138,7 +149,7 @@ function isDuration(value: unknown): value is number {
 function hasContext(value: Unknown): boolean {
   return (
     isNonEmptyString(value.levelId) &&
-    (value.mode === 'single' || value.mode === 'sequence') &&
+    (value.mode === 'single' || value.mode === 'sequence' || value.mode === 'exam') &&
     (value.clef === 'treble' || value.clef === 'bass' || value.clef === 'grand') &&
     typeof value.assisted === 'boolean'
   );
@@ -155,8 +166,21 @@ export function isProfileRecord(value: unknown): value is ProfileRecord {
   );
 }
 
+function isExamResult(value: unknown): value is ExamResult {
+  return (
+    isObject(value) &&
+    typeof value.passed === 'boolean' &&
+    Number.isInteger(value.notes) &&
+    (value.notes as number) > 0 &&
+    typeof value.firstTryRate === 'number' &&
+    value.firstTryRate >= 0 &&
+    value.firstTryRate <= 1
+  );
+}
+
 export function isSessionRecord(value: unknown): value is SessionRecord {
   return (
+    (!isObject(value) || value.exam === undefined || isExamResult(value.exam)) &&
     isObject(value) &&
     value.schema === RECORD_SCHEMA &&
     isNonEmptyString(value.id) &&

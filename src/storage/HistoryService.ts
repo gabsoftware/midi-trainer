@@ -7,6 +7,7 @@ import {
   createSessionRecord,
   normalizeProfileName,
   type AttemptRecord,
+  type ExamResult,
   type ExerciseContext,
   type ProfileRecord,
   type SessionRecord,
@@ -264,6 +265,15 @@ export class HistoryService {
     this.update({ profiles });
     const current = this.snapshot.profileId;
     await this.selectProfile(current && profiles.some((p) => p.id === current) ? current : profiles[0].id);
+  }
+
+  /** Enregistre le résultat d'un examen terminé sur sa séance. */
+  completeExam(sessionId: string, result: ExamResult): void {
+    const session = this.snapshot.sessions.find((item) => item.id === sessionId);
+    if (!session) return;
+    const completed: SessionRecord = { ...session, exam: result };
+    this.update({ sessions: this.snapshot.sessions.map((item) => (item.id === sessionId ? completed : item)) });
+    this.persist((store) => store.putSession(completed));
   }
 
   /** Efface l'historique de l'élève courant. */

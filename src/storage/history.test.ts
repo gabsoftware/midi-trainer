@@ -447,6 +447,34 @@ describe('HistoryService', () => {
     expect(service.getSnapshot().error).toEqual({ code: 'skipped-records', count: 1 });
   });
 
+  it('enregistre le résultat d’un examen et le retrouve après rechargement', async () => {
+    const name = freshDbName();
+    const service = new HistoryService(openStore(name), sequentialIds(), steppingClock());
+    await service.load();
+    const profileId = service.getSnapshot().profileId;
+    const session = service.startSession({ ...CONTEXT, mode: 'exam' });
+    service.recordAttempt(session.id, attempt(64, [64]));
+    service.completeExam(session.id, { passed: true, notes: 1, firstTryRate: 1 });
+    await service.flush();
+
+    const reloaded = new HistoryService(openStore(name));
+    await reloaded.load(profileId);
+    expect(reloaded.getSnapshot().sessions[0]).toMatchObject({
+      mode: 'exam',
+      attemptCount: 1,
+      exam: { passed: true, notes: 1, firstTryRate: 1 },
+    });
+    expect(reloaded.getSnapshot().attempts[0].mode).toBe('exam');
+  });
+
+  it('rejette un résultat d’examen incohérent', async () => {
+    const store = new MemoryHistoryStore();
+    await store.putProfile(createProfileRecord('p1', 'Alice', new Date()));
+    const session = createSessionRecord('s1', 'p1', { ...CONTEXT, mode: 'exam' }, new Date());
+    await store.putSession({ ...session, exam: { passed: true, notes: 0, firstTryRate: 2 } });
+    expect((await store.load('p1')).skipped).toBe(1);
+  });
+
   it('ignore une tentative dont la séance a été effacée', async () => {
     const service = new HistoryService(new MemoryHistoryStore());
     await service.load();
