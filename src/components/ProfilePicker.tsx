@@ -1,7 +1,9 @@
-import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
+import { useState, type FormEvent } from 'react';
+import { useBackupImport } from '../hooks/useBackupImport';
 import { historyService } from '../hooks/useHistory';
 import { useI18n } from '../i18n/context';
-import { backupFileName, MAX_BACKUP_BYTES, parseBackup } from '../storage/backup';
+import { BackupMessageView } from './BackupMessageView';
+import { backupFileName } from '../storage/backup';
 import { deletePreferences } from '../storage/preferences';
 import { MAX_PROFILE_NAME_LENGTH, type ProfileRecord } from '../storage/records';
 import { downloadJson } from './download';
@@ -30,8 +32,8 @@ export function ProfilePicker({ profiles, currentId, onChoose, onCancel }: Profi
   const { t } = useI18n();
   const [newName, setNewName] = useState('');
   const [editing, setEditing] = useState<Editing | null>(null);
-  const [message, setMessage] = useState<{ readonly tone: 'ok' | 'error'; readonly text: string } | null>(null);
-  const fileInput = useRef<HTMLInputElement>(null);
+  const backupImport = useBackupImport();
+  const setMessage = backupImport.setMessage;
 
   const exportBackup = async (profile: ProfileRecord | null) => {
     try {
@@ -41,29 +43,6 @@ export function ProfilePicker({ profiles, currentId, onChoose, onCancel }: Profi
       setMessage(null);
     } catch (error) {
       setMessage({ tone: 'error', text: t.exportFailed(describe(error)) });
-    }
-  };
-
-  const importBackup = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = ''; // permet de réimporter le même fichier
-    if (!file) return;
-    if (file.size > MAX_BACKUP_BYTES) {
-      setMessage({ tone: 'error', text: t.importError['too-large'] });
-      return;
-    }
-    try {
-      const parsed = parseBackup(await file.text());
-      if (!parsed.ok) {
-        setMessage({ tone: 'error', text: t.importError[parsed.error] });
-        return;
-      }
-      await historyService.importBackup(parsed.students);
-      const notes = parsed.students.reduce((sum, student) => sum + student.attempts.length, 0);
-      const done = t.importDone(parsed.students.length, notes);
-      setMessage({ tone: 'ok', text: parsed.skipped > 0 ? `${done} ${t.historySkipped(parsed.skipped)}` : done });
-    } catch (error) {
-      setMessage({ tone: 'error', text: t.importFailed(describe(error)) });
     }
   };
 
@@ -173,22 +152,12 @@ export function ProfilePicker({ profiles, currentId, onChoose, onCancel }: Profi
           <button type="button" onClick={() => void exportBackup(null)}>
             {t.exportAll}
           </button>
-          <button type="button" onClick={() => fileInput.current?.click()}>
+          <button type="button" onClick={backupImport.open}>
             {t.importBackup}
           </button>
-          <input
-            ref={fileInput}
-            type="file"
-            accept="application/json,.json"
-            hidden
-            onChange={(event) => void importBackup(event)}
-          />
+          {backupImport.input}
         </div>
-        {message && (
-          <p className={message.tone === 'ok' ? 'backup-message ok' : 'backup-message error'} role="status">
-            {message.text}
-          </p>
-        )}
+        <BackupMessageView message={backupImport.message} />
       </section>
 
       {onCancel && (

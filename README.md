@@ -23,7 +23,9 @@ Pas encore implémentés : adaptation de la fréquence des notes, réglages de s
 
 ## Démarrage
 
-Prérequis : Node.js 22 ou plus récent (requis par Vite 8), et **Chrome ou Edge** (Firefox et Safari ne prennent pas en charge Web MIDI de façon fiable).
+Prérequis : Node.js 22 ou plus récent (requis par Vite 8).
+
+Navigateurs : **Chrome, Edge ou Firefox** sur ordinateur. Firefox donne l'accès MIDI par un « module d'autorisation de site » à accepter au premier chargement. Safari ne prend pas en charge Web MIDI ; l'application l'indique et reste utilisable avec le clavier de l'ordinateur.
 
 ```bash
 npm install

@@ -79,6 +79,12 @@ export default function App() {
           </select>
         </div>
       </header>
+      {(midi.access === 'unsupported' || midi.access === 'denied') && (
+        <div className="browser-notice" role="alert">
+          <strong>{midi.access === 'unsupported' ? t.browserUnsupportedTitle : t.midiDeniedTitle}</strong>{' '}
+          {midi.access === 'unsupported' ? t.browserUnsupportedText : t.midiDeniedText}
+        </div>
+      )}
       {content}
     </div>
   );

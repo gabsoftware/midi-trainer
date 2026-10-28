@@ -106,6 +106,7 @@ const fr = {
   welcomeHint: 'Chaque élève retrouve sa propre progression. Vous pourrez en ajouter d’autres plus tard.',
   continue: 'Continuer',
   later: 'Plus tard',
+  welcomeHasBackup: 'Vous avez déjà une sauvegarde de votre progression ?',
 
   // Sauvegarde
   backupTitle: 'Sauvegarde',
@@ -127,7 +128,7 @@ const fr = {
   exportFailed: (detail: string) => `L’export a échoué (${detail}).`,
 
   // MIDI
-  midiUnsupported: 'Web MIDI non disponible (utilisez Chrome ou Edge)',
+  midiUnsupported: 'Web MIDI non disponible dans ce navigateur',
   midiDenied: 'Accès MIDI refusé',
   midiConnecting: 'Connexion MIDI…',
   midiConnected: (name: string) => `Connecté : ${name}`,
@@ -138,6 +139,12 @@ const fr = {
   midiUnpluggedSuffix: '(débranché)',
   midiUnnamedDevice: 'Périphérique sans nom',
   midiOpenFailed: (device: string) => `Impossible d’ouvrir « ${device} ».`,
+  browserUnsupportedTitle: 'Ce navigateur ne permet pas d’utiliser un clavier MIDI.',
+  browserUnsupportedText:
+    'Ouvrez cette page dans Google Chrome, Microsoft Edge ou Firefox sur ordinateur. En attendant, vous pouvez vous entraîner avec le clavier de l’ordinateur.',
+  midiDeniedTitle: 'L’accès au clavier MIDI a été refusé.',
+  midiDeniedText:
+    'Pour l’autoriser, cliquez sur l’icône à gauche de l’adresse du site et autorisez les périphériques MIDI, puis rechargez la page. Dans Firefox, acceptez le module d’autorisation proposé au chargement de la page.',
 
   staffLabel: 'Portée musicale',
   keyOutOfRange: 'Touche hors de l’affichage',
@@ -239,6 +246,7 @@ const en: Messages = {
   welcomeHint: 'Each student keeps their own progress. You can add more students later.',
   continue: 'Continue',
   later: 'Later',
+  welcomeHasBackup: 'Already have a backup of your progress?',
 
   backupTitle: 'Backup',
   backupHint:
@@ -258,7 +266,7 @@ const en: Messages = {
   importFailed: (detail) => `Import failed (${detail}).`,
   exportFailed: (detail) => `Export failed (${detail}).`,
 
-  midiUnsupported: 'Web MIDI unavailable (use Chrome or Edge)',
+  midiUnsupported: 'Web MIDI unavailable in this browser',
   midiDenied: 'MIDI access denied',
   midiConnecting: 'Connecting to MIDI…',
   midiConnected: (name) => `Connected: ${name}`,
@@ -269,6 +277,12 @@ const en: Messages = {
   midiUnpluggedSuffix: '(unplugged)',
   midiUnnamedDevice: 'Unnamed device',
   midiOpenFailed: (device) => `Could not open “${device}”.`,
+  browserUnsupportedTitle: 'This browser cannot use a MIDI keyboard.',
+  browserUnsupportedText:
+    'Open this page in Google Chrome, Microsoft Edge or Firefox on a computer. Meanwhile, you can practise with the computer keyboard.',
+  midiDeniedTitle: 'Access to the MIDI keyboard was denied.',
+  midiDeniedText:
+    'To allow it, click the icon to the left of the site address and allow MIDI devices, then reload the page. In Firefox, accept the site permission add-on offered when the page loads.',
 
   staffLabel: 'Music staff',
   keyOutOfRange: 'Key outside the display',
