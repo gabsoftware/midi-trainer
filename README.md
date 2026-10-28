@@ -76,6 +76,18 @@ La page « À propos » affiche aussi la version de `package.json` et le commit 
 
 Référencement : le titre, la description et l'aperçu de partage (Open Graph, Twitter) sont dans [index.html](index.html) ; l'icône ([public/favicon.svg](public/favicon.svg)), le manifeste d'application et l'image d'aperçu ([public/og-image.png](public/og-image.png), 1200 × 630) sont dans `public/`. Le reste est généré au build par le module `seo` de [vite.config.ts](vite.config.ts).
 
+### Serveur web
+
+Le build (`dist/`) est un site statique. Chaque page de l'application a sa propre adresse (`/`, `/eleves`, `/entrainement`, `/statistiques`, `/reglages`, `/a-propos`) sans exister en fichier : le serveur doit répondre `index.html` pour toute adresse qui ne correspond à aucun fichier. Garder de vraies erreurs 404 pour `/assets/` et `/samples/`, pour qu'un fichier manquant ne soit pas remplacé par la page. Avec nginx, par exemple :
+
+```nginx
+location /assets/  { try_files $uri =404; }
+location /samples/ { try_files $uri =404; }
+location /         { try_files $uri $uri/ /index.html; }
+```
+
+Le serveur de développement de Vite (`npm run dev`) le fait déjà.
+
 ## Sons de piano
 
 Les sons ne font pas partie du dépôt : chacun produit les siens, avec le piano de son choix (instrument logiciel ou clavier réel). Le dépôt fournit les deux outils qui encadrent l'enregistrement : un fichier MIDI à faire jouer, puis le découpage du résultat. L'enregistrement lui-même se fait avec vos propres logiciels.

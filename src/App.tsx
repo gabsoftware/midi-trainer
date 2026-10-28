@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { AboutView, AppFooter } from './components/AboutView';
+import { HomeView } from './components/HomeView';
 import { SettingsView } from './components/SettingsView';
 import { MidiStatus } from './components/MidiStatus';
 import { ProfilePicker } from './components/ProfilePicker';
@@ -11,22 +12,21 @@ import { historyService, useHistory } from './hooks/useHistory';
 import { useMidi } from './hooks/useMidi';
 import { useI18n } from './i18n/context';
 import { isLocale, LOCALES } from './i18n/locale';
+import { linkProps, usePage, type Page } from './router';
 import { loadPreferences, savePreferences, type Preferences } from './storage/preferences';
 
 const LOCALE_NAMES = { fr: 'Français', en: 'English' } as const;
 
-/**
- * `auto` : au lancement, l'écran « Qui joue ? » s'affiche s'il y a plusieurs élèves,
- * et le prénom est demandé si l'unique élève n'a pas encore de nom.
- */
-type PickerState = 'auto' | 'open' | 'closed';
+/** Pages qui travaillent avec l'élève courant : son prénom est demandé au premier lancement. */
+const STUDENT_PAGES: readonly Page[] = ['practice', 'stats', 'settings'];
 
 export default function App() {
   const midi = useMidi();
   const history = useHistory();
   const { t, locale, setLocale } = useI18n();
-  const [picker, setPicker] = useState<PickerState>('auto');
-  const [view, setView] = useState<'training' | 'stats' | 'settings' | 'about'>('training');
+  const [page, navigate] = usePage();
+  /** Prénom demandé puis reporté (« Plus tard ») : on ne le redemande pas pendant la visite. */
+  const [nameSkipped, setNameSkipped] = useState(false);
   /** Réglages par élève, lus une fois puis gardés en mémoire. */
   const [preferencesByProfile, setPreferencesByProfile] = useState<Readonly<Record<string, Preferences>>>({});
 
@@ -35,6 +35,9 @@ export default function App() {
   const preferences = currentProfile
     ? (preferencesByProfile[currentProfile.id] ?? loadPreferences(currentProfile.id))
     : null;
+  const studentName = currentProfile ? profileName(currentProfile, profiles, t) : '';
+  /** Premier lancement : un seul élève, sans nom. */
+  const firstVisit = profiles.length === 1 && currentProfile?.name === '';
 
   const updatePreferences = (patch: Partial<Preferences>) => {
     if (!currentProfile || !preferences) return;
@@ -42,102 +45,72 @@ export default function App() {
     savePreferences(currentProfile.id, updated);
     setPreferencesByProfile((current) => ({ ...current, [currentProfile.id]: updated }));
   };
-  const showPicker = picker === 'open' || (picker === 'auto' && profiles.length > 1);
-  const showWelcome = picker === 'auto' && profiles.length === 1 && currentProfile?.name === '';
 
   const chooseProfile = (id: string) => {
     void historyService.selectProfile(id);
-    setPicker('closed');
+    navigate('practice');
   };
 
   let content;
-  if (view === 'about') {
-    // Accessible depuis n'importe quel écran, même avant de choisir un élève.
-    content = <AboutView onBack={() => setView('training')} />;
+  if (page === 'about') {
+    content = <AboutView onBack={() => navigate('home')} />;
   } else if (!currentProfile || !preferences) {
     content = <p className="loading">{t.loading}</p>;
-  } else if (showWelcome) {
-    content = <WelcomeName profileId={currentProfile.id} onDone={() => setPicker('closed')} />;
-  } else if (showPicker) {
+  } else if (page === 'home') {
     content = (
-      <ProfilePicker
-        profiles={profiles}
-        currentId={profileId}
-        onChoose={chooseProfile}
-        onCancel={picker === 'open' ? () => setPicker('closed') : undefined}
-      />
+      <HomeView studentName={firstVisit ? null : studentName} preferences={preferences} onNavigate={navigate} />
     );
-  } else if (view === 'stats') {
-    content = <StatsView studentName={profileName(currentProfile, profiles, t)} />;
-  } else if (view === 'settings') {
+  } else if (page === 'students') {
     content = (
-      <SettingsView
-        studentName={profileName(currentProfile, profiles, t)}
-        preferences={preferences}
-        onChange={updatePreferences}
-      />
+      <ProfilePicker profiles={profiles} currentId={profileId} onChoose={chooseProfile} onCancel={() => navigate('home')} />
     );
+  } else if (firstVisit && !nameSkipped && STUDENT_PAGES.includes(page)) {
+    content = <WelcomeName profileId={currentProfile.id} onDone={() => setNameSkipped(true)} />;
+  } else if (page === 'stats') {
+    content = <StatsView studentName={studentName} />;
+  } else if (page === 'settings') {
+    content = <SettingsView studentName={studentName} preferences={preferences} onChange={updatePreferences} />;
   } else {
     // `key` : changer d'élève repart d'un écran d'entraînement neuf.
     content = (
       <Trainer key={currentProfile.id} midi={midi} preferences={preferences} onPreferencesChange={updatePreferences} />
     );
   }
-  const showNav = currentProfile !== null && !showPicker && !showWelcome && view !== 'about';
+  const showNav = currentProfile !== null && !firstVisit;
+  const navLink = (target: Page, label: string) => (
+    <a {...linkProps(target)} className={page === target ? 'current' : undefined} aria-current={page === target ? 'page' : undefined}>
+      {label}
+    </a>
+  );
 
   return (
     <div className="app">
       <header className="app-header">
         <h1>
-          {/* Vrai lien (nouvel onglet possible) ; un clic simple revient à l'entraînement sans recharger. */}
-          <a
-            href={import.meta.env.BASE_URL}
-            className="brand"
-            title={t.homeLink}
-            onClick={(event) => {
-              if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
-              event.preventDefault();
-              setView('training');
-              if (picker === 'open') setPicker('closed');
-            }}
-          >
+          <a {...linkProps('home')} className="brand" title={t.homeLink}>
             <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width="28" height="28" />
             {t.appTitle}
           </a>
         </h1>
         {showNav && (
           <nav className="main-nav">
-            <button
-              type="button"
-              className={view === 'training' ? 'current' : ''}
-              aria-current={view === 'training' ? 'page' : undefined}
-              onClick={() => setView('training')}
-            >
-              {t.navTraining}
-            </button>
-            <button
-              type="button"
-              className={view === 'stats' ? 'current' : ''}
-              aria-current={view === 'stats' ? 'page' : undefined}
-              onClick={() => setView('stats')}
-            >
-              {t.navStats}
-            </button>
+            {navLink('practice', t.navTraining)}
+            {navLink('stats', t.navStats)}
           </nav>
         )}
         <div className="header-tools">
           {currentProfile && showNav && (
             <div className="student-tools">
-              <button type="button" className="student-button" title={t.switchStudent} onClick={() => setPicker('open')}>
-                <span className="student-label">{t.student}</span> <strong>{profileName(currentProfile, profiles, t)}</strong>
+              <button type="button" className="student-button" title={t.switchStudent} onClick={() => navigate('students')}>
+                <span className="student-label">{t.student}</span> <strong>{studentName}</strong>
               </button>
               <button
                 type="button"
-                className={view === 'settings' ? 'icon-button current' : 'icon-button'}
-                aria-label={t.settingsButton(profileName(currentProfile, profiles, t))}
-                aria-current={view === 'settings' ? 'page' : undefined}
-                title={t.settingsButton(profileName(currentProfile, profiles, t))}
-                onClick={() => setView(view === 'settings' ? 'training' : 'settings')}
+                className={page === 'settings' ? 'icon-button current' : 'icon-button'}
+                aria-label={t.settingsButton(studentName)}
+                aria-current={page === 'settings' ? 'page' : undefined}
+                title={t.settingsButton(studentName)}
+                onClick={() => navigate(page === 'settings' ? 'practice' : 'settings')}
               >
                 <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
                   <path
@@ -172,7 +145,7 @@ export default function App() {
         </div>
       )}
       {content}
-      <AppFooter onAbout={() => setView('about')} />
+      <AppFooter />
     </div>
   );
 }

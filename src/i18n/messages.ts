@@ -9,7 +9,7 @@ import type { Locale } from './locale';
  */
 const fr = {
   appTitle: 'Apprendre à lire les notes',
-  homeLink: 'Retour à l’entraînement',
+  homeLink: 'Accueil',
   /** Titre de l'onglet et des résultats de recherche (même texte que dans index.html). */
   documentTitle: 'Apprendre à lire les notes au piano — exercices pas à pas',
   language: 'Langue',
@@ -90,6 +90,22 @@ const fr = {
   navTraining: 'Entraînement',
   navStats: 'Statistiques',
   aboutLink: 'À propos',
+  homeHeadline: 'Apprenez à lire les notes sur la portée, pas à pas.',
+  homeIntro:
+    'Une note s’affiche, vous la jouez sur un clavier. L’application vous guide de la clé de sol au grand système, à votre rythme, et fait revenir plus souvent les notes qui vous résistent.',
+  homeFirstVisitTitle: 'Première visite ?',
+  homeFirstVisit: 'Indiquez le prénom de l’élève et commencez au niveau 1. Aucune inscription : tout reste dans ce navigateur.',
+  homeChooseStudent: 'Choisir un élève ou importer une sauvegarde',
+  homeContinue: 'Continuer',
+  homeMastered: (count: number, total: number) => `${count} niveau${count > 1 ? 'x' : ''} validé${count > 1 ? 's' : ''} sur ${total}`,
+  homeHowTitle: 'Comment ça marche',
+  homeSteps: [
+    'Branchez un clavier MIDI, ou jouez avec le clavier de l’ordinateur ou le clavier affiché à l’écran.',
+    'Une note s’affiche sur la portée : jouez-la. Une bonne réponse passe à la suivante, une erreur s’affiche en rouge.',
+    'Quand un niveau est maîtrisé, un court examen le valide et le niveau suivant vous est proposé.',
+  ] as readonly string[],
+  homePathTitle: 'Le parcours',
+  homePathIntro: 'Dix niveaux, chacun validé par un examen :',
   aboutTitle: (app: string) => `À propos de « ${app} »`,
   aboutVersion: (version: string) => `Version ${version}`,
   aboutCommit: (commit: string) => `build ${commit}`,
@@ -265,7 +281,7 @@ export type Messages = typeof fr;
 
 const en: Messages = {
   appTitle: 'Learn to Read Music',
-  homeLink: 'Back to practice',
+  homeLink: 'Home',
   documentTitle: 'Learn to Read Music on the Piano — Step-by-Step Practice',
   language: 'Language',
 
@@ -339,6 +355,22 @@ const en: Messages = {
   navTraining: 'Practice',
   navStats: 'Statistics',
   aboutLink: 'About',
+  homeHeadline: 'Learn to read notes on the staff, step by step.',
+  homeIntro:
+    'A note appears, you play it on a keyboard. The app guides you from the treble clef to the grand staff, at your own pace, and brings back the notes you struggle with more often.',
+  homeFirstVisitTitle: 'First visit?',
+  homeFirstVisit: 'Enter the student’s first name and start at level 1. No sign-up: everything stays in this browser.',
+  homeChooseStudent: 'Choose a student or import a backup',
+  homeContinue: 'Continue',
+  homeMastered: (count, total) => `${count} of ${total} level${total > 1 ? 's' : ''} passed`,
+  homeHowTitle: 'How it works',
+  homeSteps: [
+    'Plug in a MIDI keyboard, or play with the computer keyboard or the on-screen keyboard.',
+    'A note appears on the staff: play it. A right answer moves on to the next one; a mistake shows in red.',
+    'Once a level is mastered, a short exam validates it and the next level is offered.',
+  ],
+  homePathTitle: 'The path',
+  homePathIntro: 'Ten levels, each validated by an exam:',
   aboutTitle: (app) => `About “${app}”`,
   aboutVersion: (version) => `Version ${version}`,
   aboutCommit: (commit) => `build ${commit}`,

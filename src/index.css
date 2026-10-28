@@ -357,13 +357,19 @@ input {
   margin-right: auto;
 }
 
-.main-nav button {
-  border-color: transparent;
-  background: transparent;
+.main-nav a {
+  padding: 0.45rem 0.9rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
   color: var(--muted);
+  text-decoration: none;
 }
 
-.main-nav button.current {
+.main-nav a:hover {
+  color: var(--text);
+}
+
+.main-nav a.current {
   background: var(--surface);
   border-color: var(--border);
   color: var(--text);
@@ -1000,15 +1006,6 @@ input {
   color: var(--accent);
 }
 
-.link-button {
-  padding: 0;
-  border: none;
-  background: none;
-  color: var(--accent);
-  font: inherit;
-  text-decoration: underline;
-  cursor: pointer;
-}
 
 .about {
   max-width: 44rem;
@@ -1020,4 +1017,57 @@ input {
 
 .about-version {
   font-weight: 600;
+}
+
+.home {
+  display: flex;
+  flex-direction: column;
+  gap: 1.75rem;
+  max-width: 52rem;
+}
+
+.home-hero h2 {
+  margin: 0.5rem 0 0.75rem;
+  font-size: 1.75rem;
+  line-height: 1.2;
+}
+
+.home-hero p {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--muted);
+}
+
+.home-student {
+  padding: 1.25rem 1.5rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.home-student h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.4rem;
+}
+
+.home-eyebrow {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.home-how h3,
+.home-path h3 {
+  margin: 0 0 0.5rem;
+}
+
+.home-how ol,
+.home-path ol {
+  margin: 0;
+  padding-left: 1.4rem;
+  line-height: 1.6;
+}
+
+.home-path li.unavailable {
+  color: var(--muted);
 }

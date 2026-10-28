@@ -1,5 +1,6 @@
 import { ABOUT, GPL_URL } from '../about';
 import { useI18n } from '../i18n/context';
+import { linkProps } from '../router';
 
 function ExternalLink({ href, children }: { readonly href: string; readonly children: React.ReactNode }) {
   return (
@@ -49,7 +50,7 @@ export function AboutView({ onBack }: { readonly onBack: () => void }) {
 }
 
 /** Pied de page : version, éditeur et lien vers « À propos ». */
-export function AppFooter({ onAbout }: { readonly onAbout: () => void }) {
+export function AppFooter() {
   const { t } = useI18n();
   const { version, author } = ABOUT;
   return (
@@ -60,9 +61,7 @@ export function AppFooter({ onAbout }: { readonly onAbout: () => void }) {
           {t.madeBy} {author.url ? <ExternalLink href={author.url}>{author.name}</ExternalLink> : author.name}
         </span>
       )}
-      <button type="button" className="link-button" onClick={onAbout}>
-        {t.aboutLink}
-      </button>
+      <a {...linkProps('about')}>{t.aboutLink}</a>
     </footer>
   );
 }
