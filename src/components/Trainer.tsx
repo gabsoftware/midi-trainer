@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   pause,
-  pickNextNote,
   playNote,
   resumeNote,
   startNote,
@@ -13,6 +12,7 @@ import { useKeyLabels } from '../hooks/useKeyLabels';
 import { midiManager, useNoteEvents } from '../hooks/useMidi';
 import { useI18n } from '../i18n/context';
 import type { Messages } from '../i18n/messages';
+import { noteWeights, pickWeightedNote } from '../learning/adaptive';
 import { findLevel, LEVELS, type LevelDefinition } from '../learning/levels';
 import { evaluateLevel, nextLevel, recognitionMedian, recommendLevel } from '../learning/mastery';
 import { OCTAVE_DOWN_CODE, OCTAVE_UP_CODE, WHITE_KEY_CODES } from '../midi/computerKeyboard';
@@ -42,6 +42,17 @@ interface Session {
 
 function isTypingTarget(target: EventTarget | null): boolean {
   return target instanceof HTMLElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(target.tagName);
+}
+
+/**
+ * Note suivante, choisie selon les performances de l'élève : les notes ratées reviennent plus
+ * souvent, les notes reconnues vite moins souvent. L'historique est relu à chaque tirage,
+ * donc l'adaptation joue dès la note suivante. Toutes les tentatives de l'élève sur une note
+ * comptent, quel que soit le niveau : reconnaître une note est la même compétence partout.
+ */
+function chooseNote(level: LevelDefinition, previous: number | null): number {
+  const weights = noteWeights(level.notes, historyService.getSnapshot().attempts, level.fastResponseMs);
+  return pickWeightedNote(level.notes, weights, previous, Math.random);
 }
 
 function effectiveOctaveMode(preferences: Preferences, level: LevelDefinition): OctaveMode {
@@ -153,7 +164,7 @@ export function Trainer({ profileId, midi }: TrainerProps) {
         level: target,
         octaveMode,
         masteredAtStart: currentProgress.get(target.id)?.status === 'mastered',
-        exercise: startNote(pickNextNote(target.notes, null, Math.random), octaveMode, performance.now()),
+        exercise: startNote(chooseNote(target, null), octaveMode, performance.now()),
         attempts: [],
       });
     },
@@ -216,7 +227,7 @@ export function Trainer({ profileId, midi }: TrainerProps) {
       if (!current) return;
       updateExercise((state) =>
         state.phase === 'answered'
-          ? startNote(pickNextNote(current.level.notes, state.expected, Math.random), current.octaveMode, performance.now())
+          ? startNote(chooseNote(current.level, state.expected), current.octaveMode, performance.now())
           : state,
       );
     }, ADVANCE_DELAY_MS);

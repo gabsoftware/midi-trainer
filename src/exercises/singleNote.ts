@@ -149,12 +149,3 @@ export function resumeNote(state: SingleNoteState, now: number): SingleNoteState
     stopwatch: state.resumePhase === 'waiting' ? resume(state.stopwatch, now) : state.stopwatch,
   };
 }
-
-/** Tire une note au hasard dans `pool`, différente de `previous` si possible. */
-export function pickNextNote(pool: readonly number[], previous: number | null, random: () => number): number {
-  if (pool.length === 0) {
-    throw new Error('Aucune note disponible pour l’exercice.');
-  }
-  const candidates = pool.length > 1 && previous !== null ? pool.filter((note) => note !== previous) : pool;
-  return candidates[Math.min(candidates.length - 1, Math.floor(random() * candidates.length))];
-}

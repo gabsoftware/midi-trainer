@@ -19,7 +19,9 @@ Le cahier des charges complet et le journal des décisions sont dans [docs/cahie
 - **Interface bilingue** français / anglais. Les noms de notes suivent la langue (Do Ré Mi / C D E).
 - **Indicateur des touches enfoncées**, journal de la séance, simulation au clavier d'ordinateur.
 
-Pas encore implémentés : adaptation de la fréquence des notes, réglages de séance (nombre de notes, chronomètre…), statistiques, séquences.
+- **Choix adaptatif des notes** : les notes ratées reviennent plus souvent, les notes reconnues rapidement moins souvent.
+
+Pas encore implémentés : réglages de séance (nombre de notes, chronomètre…) et fin de séance, statistiques, séquences.
 
 ## Démarrage
 
@@ -74,6 +76,7 @@ Sous WSL2, lancez `npm run dev` dans WSL et ouvrez `http://localhost:5173` dans 
 - **Évolution des données** : voir la section « Faire évoluer le format des données ».
 - **Historique en IndexedDB**, sans bibliothèque intermédiaire. Les données sont disponibles immédiatement en mémoire et écrites en arrière-plan, dans l'ordre des appels. Une écriture n'est considérée comme faite qu'une fois la transaction validée. Si le stockage échoue ou est indisponible, l'application continue en mémoire et affiche l'erreur. Les enregistrements portent un numéro de schéma et sont validés à la relecture : un enregistrement corrompu est ignoré et signalé, sans bloquer le reste. Une séance n'est créée qu'à la première note réussie, ce qui évite les séances vides.
 - **Internationalisation sans dépendance** (`i18n/`). Un dictionnaire par langue, typé : le dictionnaire anglais a le type du français, donc une clé ou un paramètre manquant ne compile pas. Les textes paramétrés sont des fonctions, ce qui gère le pluriel. Les données de configuration (titres des niveaux) portent leurs textes dans les deux langues. Les modules non graphiques (MIDI, historique) renvoient des codes d'erreur, traduits par l'interface. La langue par défaut est celle du navigateur, le français à défaut ; le choix est mémorisé.
+- **Choix adaptatif des notes** (`learning/adaptive.ts`) : règle simple et déterministe. Chaque note part d'un poids de 1, et ses 5 dernières tentatives le modifient : ratée au premier essai ×1,8, réussie lentement ×1, réussie rapidement (sous le seuil `fastResponseMs` du niveau) ×0,7. Une note jamais jouée vaut 1,5 pour être découverte vite. Les poids restent entre 0,25 et 4, et la même note ne sort jamais deux fois de suite. Toutes les tentatives de l'élève sur une note comptent, quel que soit le niveau. L'historique est relu à chaque tirage, donc l'adaptation joue dès la note suivante.
 - **Simulation clavier** par le même type d'événement (`NoteEvent`) que le vrai MIDI : le reste de l'application ne fait pas la différence.
 - **VexFlow 5** (entrée `vexflow/bravura`, police Bravura uniquement). Le rendu attend le chargement de la police et s'adapte à la largeur disponible. Le grand système relie les deux portées par une accolade, et la note s'affiche en clé de sol à partir du do central.
 - **Dépendances** limitées à React et VexFlow, plus Vitest et `fake-indexeddb` (IndexedDB en mémoire pour les tests) en développement. Toutes sont des versions publiées depuis au moins 15 jours.
@@ -97,7 +100,8 @@ src/
                computerKeyboard.ts (simulation)
   music/       pitch.ts (conversions MIDI ↔ hauteur, noms de notes, clés VexFlow), validation.ts (octave exacte/indifférente)
   exercises/   singleNote.ts (exercice note isolée : validation, chronomètre, pauses)
-  learning/    levels.ts (parcours en 10 niveaux), mastery.ts (critères de maîtrise, niveau conseillé)
+  learning/    levels.ts (parcours en 10 niveaux), mastery.ts (critères de maîtrise, niveau conseillé),
+               adaptive.ts (fréquence des notes)
   statistics/  basic.ts (médiane, moyenne)
   storage/     records.ts (format et validation des enregistrements), historyStore.ts (IndexedDB / mémoire),
                HistoryService.ts (élèves, cache, file d'écriture, erreurs), preferences.ts (réglages par élève),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { elapsed, pause, pickNextNote, playNote, resumeNote, startNote } from './singleNote';
+import { elapsed, pause, playNote, resumeNote, startNote } from './singleNote';
 
 const E4 = 64;
 const F4 = 65;
@@ -87,27 +87,5 @@ describe('exercice note isolée', () => {
     let state = pause(startNote(E4, 'exact', 0), 'user', 100);
     state = pause(state, 'midi-disconnected', 200);
     expect(state.pauseReason).toBe('midi-disconnected');
-  });
-});
-
-describe('pickNextNote', () => {
-  it('ne répète jamais la note précédente quand c’est possible', () => {
-    const pool = [64, 67, 71];
-    for (const r of [0, 0.34, 0.5, 0.67, 0.99]) {
-      expect(pickNextNote(pool, 67, () => r)).not.toBe(67);
-    }
-  });
-
-  it('reste déterministe pour une source aléatoire donnée', () => {
-    expect(pickNextNote([64, 67, 71], null, () => 0)).toBe(64);
-    expect(pickNextNote([64, 67, 71], null, () => 0.999)).toBe(71);
-  });
-
-  it('accepte une seule note disponible', () => {
-    expect(pickNextNote([64], 64, () => 0.5)).toBe(64);
-  });
-
-  it('refuse un ensemble vide', () => {
-    expect(() => pickNextNote([], null, () => 0)).toThrow();
   });
 });
