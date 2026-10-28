@@ -21,7 +21,7 @@ export interface Preferences {
 }
 
 export const SESSION_LENGTHS = [10, 20, 30, 50, 0] as const;
-export const ADVANCE_DELAYS_MS = [300, 600, 1000, 1500, 2000] as const;
+export const ADVANCE_DELAYS_MS = [300, 450, 600, 800, 1000, 1250, 1500, 2000, 2500, 3000, 4000, 5000] as const;
 
 export const DEFAULT_PREFERENCES: Preferences = {
   levelId: null,
