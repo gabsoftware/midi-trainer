@@ -32,6 +32,16 @@ export interface MasteryCriteria {
   readonly minSessionAccuracy: number;
   /** Ces séances doivent couvrir au moins ce nombre de jours différents. */
   readonly minDays: number;
+  /**
+   * Voie express : une performance exceptionnelle sur la fenêtre récente dispense
+   * du critère de régularité (élève qui sait déjà lire). Le volume reste exigé.
+   */
+  readonly fastTrack: {
+    /** Réussite du premier coup exigée (0–1). */
+    readonly minFirstTryAccuracy: number;
+    /** Temps médian maximal, en fraction de `maxMedianMs`. */
+    readonly maxMedianRatio: number;
+  };
 }
 
 export interface LevelDefinition {
@@ -61,6 +71,7 @@ const BASE_MASTERY: MasteryCriteria = {
   minSessionAttempts: 10,
   minSessionAccuracy: 0.85,
   minDays: 2,
+  fastTrack: { minFirstTryAccuracy: 0.98, maxMedianRatio: 1 / 3 },
 };
 
 function notes(...names: string[]): number[] {

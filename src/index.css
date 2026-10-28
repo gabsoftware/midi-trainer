@@ -67,7 +67,7 @@ kbd {
 }
 
 .app {
-  max-width: 880px;
+  max-width: 1140px;
   margin: 0 auto;
   padding: 1rem 1.25rem 3rem;
 }
@@ -115,9 +115,182 @@ kbd {
 }
 
 .trainer {
+  display: grid;
+  gap: 1.25rem 1.75rem;
+  grid-template-areas: 'side' 'main';
+}
+
+@media (min-width: 960px) {
+  .trainer {
+    grid-template-columns: minmax(0, 1fr) 320px;
+    grid-template-areas: 'main side';
+    align-items: start;
+  }
+}
+
+.trainer-main {
+  grid-area: main;
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  min-width: 0;
+}
+
+.trainer-side {
+  grid-area: side;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.advice {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #b7dfc4;
+  border-radius: 12px;
+  background: #ecf8f0;
+}
+
+.advice p {
+  margin: 0;
+}
+
+.advice-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+button.subtle {
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+}
+
+button.subtle:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+button.danger {
+  background: var(--ko);
+  border-color: var(--ko);
+  color: #fff;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+input {
+  font: inherit;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: inherit;
+}
+
+.student-button {
+  font-size: 0.9rem;
+}
+
+.student-label {
+  color: var(--muted);
+}
+
+.loading {
+  color: var(--muted);
+  text-align: center;
+  padding: 3rem 0;
+}
+
+.profile-picker {
+  max-width: 520px;
+  margin: 2rem auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.profile-picker h2 {
+  margin: 0;
+  font-size: 1.4rem;
+  text-align: center;
+}
+
+.profile-picker ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.profile-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.profile-row input {
+  flex: 1;
+  min-width: 10rem;
+}
+
+.profile-row.confirm {
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #f1c4c4;
+  border-radius: 10px;
+  background: #fdf1f1;
+}
+
+.profile-row.confirm span {
+  flex: 1;
+  min-width: 12rem;
+}
+
+.profile-choice {
+  flex: 1;
+  min-width: 10rem;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+.profile-choice.current {
+  border-color: var(--accent);
+}
+
+.new-profile {
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.back {
+  align-self: center;
+}
+
+.welcome {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.welcome label {
+  font-weight: 600;
+}
+
+.welcome .hint {
+  margin: 0;
 }
 
 .trainer-meta {
@@ -163,17 +336,26 @@ kbd {
 
 .level-progress {
   font-size: 0.85rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
 }
 
-.level-progress summary {
-  cursor: pointer;
-  color: var(--muted);
+.level-progress h3 {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 600;
 }
 
 .level-progress ul {
   margin: 0.4rem 0 0;
   padding-left: 1.2rem;
   list-style: '○  ';
+}
+
+.level-progress .hint {
+  margin: 0.5rem 0 0;
 }
 
 .level-progress li.met {
@@ -302,14 +484,14 @@ kbd {
 
 .options {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem 1.5rem;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
   font-size: 0.9rem;
 }
 
 .options .hint {
-  flex-basis: 100%;
+  margin: 0;
 }
 
 .journal {

@@ -44,11 +44,9 @@ export function LevelPicker({ levels, progress, selected, recommendedId, onSelec
         {t.clef[selected.clef]} · {text(selected.description)}
       </p>
 
-      {current && current.status !== 'new' && (
-        <details className="level-progress">
-          <summary>
-            {current.status === 'mastered' ? t.levelMastered : t.progressTitle}
-          </summary>
+      {current && (
+        <div className="level-progress">
+          <h3>{t.progressTitle}</h3>
           <ul>
             <li className={current.volume.met ? 'met' : ''}>
               {t.criterionVolume(current.volume.current, current.volume.target)}
@@ -73,8 +71,16 @@ export function LevelPicker({ levels, progress, selected, recommendedId, onSelec
                 current.regularity.targetDays,
               )}
             </li>
+            <li className={current.fastTrack.met ? 'met' : ''}>
+              {t.criterionFastTrack(percent(current.fastTrack.accuracyTarget), seconds(current.fastTrack.speedTargetMs))}
+            </li>
           </ul>
-        </details>
+          {current.status !== 'mastered' &&
+            current.volume.met &&
+            current.accuracy.met &&
+            current.speed.met &&
+            !current.regularity.met && <p className="hint">{t.onlyRegularityMissing}</p>}
+        </div>
       )}
     </section>
   );

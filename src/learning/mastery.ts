@@ -28,6 +28,12 @@ export interface LevelProgress {
     readonly targetDays: number;
     readonly met: boolean;
   };
+  /** Voie express : précision et vitesse exceptionnelles, qui dispensent de la régularité. */
+  readonly fastTrack: {
+    readonly accuracyTarget: number;
+    readonly speedTargetMs: number;
+    readonly met: boolean;
+  };
 }
 
 /**
@@ -110,7 +116,19 @@ export function evaluateLevel(level: LevelDefinition, attempts: readonly Attempt
     met: counted.length >= criteria.minSessions && days >= criteria.minDays,
   };
 
-  const mastered = volume.met && accuracy.met && speed.met && regularity.met;
+  const fastTrackSpeedMs = criteria.maxMedianMs * criteria.fastTrack.maxMedianRatio;
+  const fastTrack = {
+    accuracyTarget: criteria.fastTrack.minFirstTryAccuracy,
+    speedTargetMs: fastTrackSpeedMs,
+    met:
+      volume.met &&
+      accuracyValue !== null &&
+      accuracyValue >= criteria.fastTrack.minFirstTryAccuracy &&
+      speedValue !== null &&
+      speedValue <= fastTrackSpeedMs,
+  };
+
+  const mastered = volume.met && accuracy.met && speed.met && (regularity.met || fastTrack.met);
   return {
     levelId: level.id,
     status: mastered ? 'mastered' : relevant.length === 0 ? 'new' : 'learning',
@@ -119,7 +137,24 @@ export function evaluateLevel(level: LevelDefinition, attempts: readonly Attempt
     accuracy,
     speed,
     regularity,
+    fastTrack,
   };
+}
+
+/**
+ * Niveau vers lequel avancer une fois `current` maîtrisé : le premier niveau jouable
+ * suivant qui n'est pas encore maîtrisé, ou `null` s'il n'y en a plus.
+ */
+export function nextLevel(
+  levels: readonly LevelDefinition[],
+  current: LevelDefinition,
+  progress: ReadonlyMap<string, LevelProgress>,
+): LevelDefinition | null {
+  return (
+    levels.find(
+      (level) => level.available && level.number > current.number && progress.get(level.id)?.status !== 'mastered',
+    ) ?? null
+  );
 }
 
 /** Niveau conseillé : le premier niveau jouable qui n'est pas encore maîtrisé. */

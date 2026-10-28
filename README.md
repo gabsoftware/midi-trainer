@@ -8,11 +8,13 @@ Le cahier des charges complet et le journal des décisions sont dans [docs/cahie
 
 - **Reconnaissance de notes isolées (mode A).** Une bonne réponse passe la note en vert et fait avancer l'exercice. Une mauvaise réponse fait clignoter la note en rouge, sans avancer.
 - **Parcours en 10 niveaux.** Les niveaux 1 à 6 et 8 sont jouables : clé de sol, clé de fa, lignes supplémentaires, grand système. Les niveaux 7 (séquences), 9 (accords et altérations) et 10 (rythme) sont annoncés « à venir ».
-- **Choix libre du niveau**, avec un niveau conseillé : le premier niveau jouable non maîtrisé. Pour chaque niveau, l'application affiche les critères de maîtrise et leur état.
+- **Choix libre du niveau**, avec un niveau conseillé : le premier niveau jouable non maîtrisé. Les critères de maîtrise du niveau et leur état sont toujours affichés.
+- **Conseil de passage au niveau suivant** dès qu'un niveau est maîtrisé : Entrée pour avancer, Échap pour rester. Le changement n'est jamais automatique.
+- **Plusieurs élèves** : chacun retrouve son historique, sa progression et ses réglages. Un écran « Qui joue ? » s'affiche au lancement s'il y a plusieurs élèves ; on y crée, renomme et supprime les élèves.
 - **Octave** : indifférente ou exacte. Par défaut, c'est le niveau qui décide : octave exacte dès qu'il y a des lignes supplémentaires.
 - **Temps mesurés** : temps de première réponse et temps jusqu'à la bonne réponse, sur une horloge monotone, pauses exclues.
 - **Pause automatique** si le clavier MIDI est débranché ou si l'onglet est masqué.
-- **Historique local** (IndexedDB), conservé après rechargement.
+- **Historique local** (IndexedDB), conservé après rechargement, séparé par élève.
 - **Interface bilingue** français / anglais. Les noms de notes suivent la langue (Do Ré Mi / C D E).
 - **Indicateur des touches enfoncées**, journal de la séance, simulation au clavier d'ordinateur.
 
@@ -38,8 +40,9 @@ Sous WSL2, lancez `npm run dev` dans WSL et ouvrez `http://localhost:5173` dans 
 
 | Touche | Action |
 |---|---|
-| Entrée | Démarrer / recommencer |
+| Entrée | Démarrer / recommencer, ou passer au niveau conseillé quand il est proposé |
 | Espace | Pause / reprendre |
+| Échap | Rester sur le niveau maîtrisé (refuser le conseil) |
 
 **Sans clavier MIDI**, la simulation au clavier de l'ordinateur s'active par une case à cocher. Elle utilise la position physique des touches, donc la même disposition en AZERTY et en QWERTY. L'aide affichée indique les lettres de votre clavier.
 
@@ -61,7 +64,11 @@ Sous WSL2, lancez `npm run dev` dans WSL et ouvrez `http://localhost:5173` dans 
   - **Vitesse** : un temps de reconnaissance médian, pris sur les notes trouvées du premier coup.
   - **Régularité** : les dernières séances réussies d'affilée, réparties sur plusieurs jours.
 
+  **Voie express** : un élève qui sait déjà lire n'a pas à attendre un deuxième jour. Si le volume est atteint et que, sur les dernières notes, la réussite du premier coup est d'au moins 98 % avec un temps médian d'au plus un tiers de l'objectif, la régularité n'est pas exigée. Ces seuils sont réglables par niveau.
+
   Une séance ratée remet la régularité à zéro. Si un niveau exige l'octave exacte, les notes jouées en octave libre ne comptent pas. Les niveaux ne sont pas verrouillés : le cahier des charges demande un choix manuel, donc l'application conseille au lieu d'imposer.
+- **Élèves** : profils locaux, sans authentification (pas de backend). Chaque séance et chaque tentative porte l'identifiant de l'élève, et la base indexe par élève. Supprimer un élève efface son historique dans la même transaction. Les réglages sont rangés par élève dans `localStorage`. La langue et le clavier MIDI sont communs à l'appareil.
+- **Pas de migration avant publication** : quand le format de la base change, sa version est incrémentée et elle est recréée vide.
 - **Historique en IndexedDB**, sans bibliothèque intermédiaire. Les données sont disponibles immédiatement en mémoire et écrites en arrière-plan, dans l'ordre des appels. Une écriture n'est considérée comme faite qu'une fois la transaction validée. Si le stockage échoue ou est indisponible, l'application continue en mémoire et affiche l'erreur. Les enregistrements portent un numéro de schéma et sont validés à la relecture : un enregistrement corrompu est ignoré et signalé, sans bloquer le reste. Une séance n'est créée qu'à la première note réussie, ce qui évite les séances vides.
 - **Internationalisation sans dépendance** (`i18n/`). Un dictionnaire par langue, typé : le dictionnaire anglais a le type du français, donc une clé ou un paramètre manquant ne compile pas. Les textes paramétrés sont des fonctions, ce qui gère le pluriel. Les données de configuration (titres des niveaux) portent leurs textes dans les deux langues. Les modules non graphiques (MIDI, historique) renvoient des codes d'erreur, traduits par l'interface. La langue par défaut est celle du navigateur, le français à défaut ; le choix est mémorisé.
 - **Simulation clavier** par le même type d'événement (`NoteEvent`) que le vrai MIDI : le reste de l'application ne fait pas la différence.
@@ -79,9 +86,9 @@ src/
   learning/    levels.ts (parcours en 10 niveaux), mastery.ts (critères de maîtrise, niveau conseillé)
   statistics/  basic.ts (médiane, moyenne)
   storage/     records.ts (format et validation des enregistrements), historyStore.ts (IndexedDB / mémoire),
-               HistoryService.ts (cache, file d'écriture, erreurs), preferences.ts (réglages locaux)
+               HistoryService.ts (élèves, cache, file d'écriture, erreurs), preferences.ts (réglages par élève)
   i18n/        locale.ts, messages.ts (dictionnaires fr / en), context.ts, I18nProvider.tsx
   hooks/       useMidi.ts, useHistory.ts, useKeyLabels.ts (ponts entre les services et React)
-  components/  Trainer, LevelPicker, StaffView (VexFlow), MidiStatus, PianoKeys
-  App.tsx      en-tête (état MIDI, langue) et écran d'entraînement
+  components/  Trainer, LevelPicker, ProfilePicker, StaffView (VexFlow), MidiStatus, PianoKeys
+  App.tsx      en-tête (élève, état MIDI, langue), écran « Qui joue ? » ou écran d'entraînement
 ```

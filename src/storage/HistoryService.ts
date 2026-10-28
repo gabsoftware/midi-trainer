@@ -2,9 +2,12 @@ import type { NoteAttempt } from '../exercises/singleNote';
 import type { HistoryStore } from './historyStore';
 import {
   createAttemptRecord,
+  createProfileRecord,
   createSessionRecord,
+  normalizeProfileName,
   type AttemptRecord,
   type ExerciseContext,
+  type ProfileRecord,
   type SessionRecord,
 } from './records';
 
@@ -12,6 +15,11 @@ export type HistoryStatus = 'loading' | 'ready' | 'unavailable';
 
 export interface HistorySnapshot {
   readonly status: HistoryStatus;
+  /** Élèves, par date de création. */
+  readonly profiles: readonly ProfileRecord[];
+  /** Élève courant ; `null` tant que les élèves ne sont pas chargés. */
+  readonly profileId: string | null;
+  /** Historique de l'élève courant. */
   readonly attempts: readonly AttemptRecord[];
   readonly sessions: readonly SessionRecord[];
   /** Dernier problème de lecture ou d'écriture, affiché discrètement. */
@@ -28,7 +36,14 @@ export type HistoryError =
   | { readonly code: 'write-failed'; readonly detail: string }
   | { readonly code: 'skipped-records'; readonly count: number };
 
-const INITIAL_SNAPSHOT: HistorySnapshot = { status: 'loading', attempts: [], sessions: [], error: null };
+const INITIAL_SNAPSHOT: HistorySnapshot = {
+  status: 'loading',
+  profiles: [],
+  profileId: null,
+  attempts: [],
+  sessions: [],
+  error: null,
+};
 
 function describe(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -40,18 +55,22 @@ function mergeById<T extends { id: string }>(stored: readonly T[], local: readon
 }
 
 /**
- * Historique des séances et des tentatives.
+ * Élèves et historique de l'élève courant.
  *
  * - Les données sont disponibles immédiatement en mémoire ; la persistance est
- *   asynchrone, dans l'ordre des appels (file d'écriture).
- * - Une tentative enregistrée avant la fin du chargement initial n'est pas perdue.
+ *   asynchrone, dans l'ordre des appels (file d'écriture unique).
+ * - Une tentative enregistrée avant la fin d'un chargement n'est pas perdue.
+ * - Changer d'élève recharge son historique ; un chargement devenu obsolète
+ *   (changement rapide d'élève) est ignoré.
+ * - Il existe toujours au moins un élève : s'il n'y en a aucun, un élève sans nom est créé.
  * - Si le stockage échoue ou est indisponible, l'application continue en mémoire
  *   et l'erreur est exposée dans l'instantané.
  */
 export class HistoryService {
   private snapshot: HistorySnapshot = INITIAL_SNAPSHOT;
   private readonly listeners = new Set<() => void>();
-  private loadPromise: Promise<void> | null = null;
+  private initPromise: Promise<void> | null = null;
+  private loadGeneration = 0;
   private writeQueue: Promise<void> = Promise.resolve();
   private readonly store: HistoryStore | null;
   private readonly newId: () => string;
@@ -70,18 +89,58 @@ export class HistoryService {
     return () => this.listeners.delete(listener);
   };
 
-  load(): Promise<void> {
-    this.loadPromise ??= this.doLoad();
-    return this.loadPromise;
+  /**
+   * Charge les élèves puis l'historique de `preferredProfileId` (ou du premier élève).
+   * Une seule fois : les appels suivants réutilisent la même promesse.
+   */
+  load(preferredProfileId?: string | null): Promise<void> {
+    this.initPromise ??= this.doLoad(preferredProfileId ?? null);
+    return this.initPromise;
   }
 
-  private async doLoad(): Promise<void> {
+  private async doLoad(preferredProfileId: string | null): Promise<void> {
+    if (!this.store) {
+      const profile = createProfileRecord(this.newId(), '', this.clock());
+      this.update({ status: 'unavailable', profiles: [profile], profileId: profile.id, error: { code: 'no-storage' } });
+      return;
+    }
+    let profiles: ProfileRecord[];
+    try {
+      profiles = await this.store.loadProfiles();
+    } catch (error) {
+      const profile = createProfileRecord(this.newId(), '', this.clock());
+      this.update({
+        status: 'unavailable',
+        profiles: [profile],
+        profileId: profile.id,
+        error: { code: 'load-failed', detail: describe(error) },
+      });
+      return;
+    }
+    if (profiles.length === 0) {
+      const profile = createProfileRecord(this.newId(), '', this.clock());
+      profiles = [profile];
+      this.persist((store) => store.putProfile(profile));
+    }
+    const current = profiles.find((profile) => profile.id === preferredProfileId) ?? profiles[0];
+    this.update({ profiles });
+    await this.selectProfile(current.id);
+  }
+
+  /** Change d'élève et charge son historique. */
+  async selectProfile(profileId: string): Promise<void> {
+    if (!this.snapshot.profiles.some((profile) => profile.id === profileId)) return;
+    const generation = ++this.loadGeneration;
+    this.update({ status: 'loading', profileId, attempts: [], sessions: [], error: null });
     if (!this.store) {
       this.update({ status: 'unavailable', error: { code: 'no-storage' } });
       return;
     }
     try {
-      const stored = await this.store.load();
+      // Les écritures en attente (séance de l'élève précédent…) passent avant la lecture.
+      await this.writeQueue;
+      const stored = await this.store.load(profileId);
+      if (generation !== this.loadGeneration) return; // un autre élève a été choisi entre-temps
       this.update({
         status: 'ready',
         attempts: mergeById(stored.attempts, this.snapshot.attempts),
@@ -89,18 +148,58 @@ export class HistoryService {
         error: stored.skipped > 0 ? { code: 'skipped-records', count: stored.skipped } : this.snapshot.error,
       });
     } catch (error) {
+      if (generation !== this.loadGeneration) return;
       this.update({ status: 'unavailable', error: { code: 'load-failed', detail: describe(error) } });
     }
   }
 
+  createProfile(name: string): ProfileRecord {
+    const profile = createProfileRecord(this.newId(), name, this.clock());
+    this.update({ profiles: [...this.snapshot.profiles, profile] });
+    this.persist((store) => store.putProfile(profile));
+    return profile;
+  }
+
+  renameProfile(profileId: string, name: string): void {
+    const profile = this.snapshot.profiles.find((item) => item.id === profileId);
+    if (!profile) return;
+    const renamed = { ...profile, name: normalizeProfileName(name) };
+    this.update({ profiles: this.snapshot.profiles.map((item) => (item.id === profileId ? renamed : item)) });
+    this.persist((store) => store.putProfile(renamed));
+  }
+
+  /** Supprime un élève et son historique. Si c'était l'élève courant, on passe à un autre. */
+  async deleteProfile(profileId: string): Promise<void> {
+    let profiles = this.snapshot.profiles.filter((profile) => profile.id !== profileId);
+    if (profiles.length === this.snapshot.profiles.length) return;
+    if (profiles.length === 0) {
+      const replacement = createProfileRecord(this.newId(), '', this.clock());
+      profiles = [replacement];
+      this.persist((store) => store.putProfile(replacement));
+    }
+    this.update({ profiles });
+    this.persist((store) => store.deleteProfile(profileId));
+    if (this.snapshot.profileId === profileId) {
+      await this.selectProfile(profiles[0].id);
+    }
+    await this.flush();
+  }
+
   startSession(context: ExerciseContext): SessionRecord {
-    const session = createSessionRecord(this.newId(), context, this.clock());
+    const profileId = this.snapshot.profileId;
+    if (!profileId) {
+      throw new Error('No student selected.');
+    }
+    const session = createSessionRecord(this.newId(), profileId, context, this.clock());
     this.update({ sessions: [...this.snapshot.sessions, session] });
     this.persist((store) => store.putSession(session));
     return session;
   }
 
-  /** Enregistre une note réussie. Retourne `null` si la séance est inconnue (historique effacé entre-temps). */
+  /**
+   * Enregistre une note réussie. Retourne `null` si la séance n'appartient pas
+   * à l'élève courant (historique effacé ou élève changé entre-temps).
+   */
   recordAttempt(sessionId: string, attempt: NoteAttempt): AttemptRecord | null {
     const session = this.snapshot.sessions.find((item) => item.id === sessionId);
     if (!session) {
@@ -124,9 +223,12 @@ export class HistoryService {
     return record;
   }
 
+  /** Efface l'historique de l'élève courant. */
   clear(): Promise<void> {
+    const profileId = this.snapshot.profileId;
+    if (!profileId) return Promise.resolve();
     this.update({ attempts: [], sessions: [], error: null });
-    this.persist((store) => store.clear());
+    this.persist((store) => store.clear(profileId));
     return this.flush();
   }
 

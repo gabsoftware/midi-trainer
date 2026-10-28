@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { AttemptRecord } from '../storage/records';
 import { LEVELS, type LevelDefinition } from './levels';
-import { evaluateLevel, recommendLevel, type LevelProgress } from './mastery';
+import { evaluateLevel, nextLevel, recommendLevel, type LevelProgress } from './mastery';
 
 const LEVEL: LevelDefinition = {
   ...LEVELS[0],
@@ -14,6 +14,7 @@ const LEVEL: LevelDefinition = {
     minSessionAttempts: 10,
     minSessionAccuracy: 0.85,
     minDays: 2,
+    fastTrack: { minFirstTryAccuracy: 0.98, maxMedianRatio: 0.25 },
   },
 };
 
@@ -36,6 +37,7 @@ function session({ day, count, misses = 0, timeMs = 1000, levelId = LEVEL.id, oc
     return {
       schema: 1,
       id: `a-${++counter}`,
+      profileId: 'p1',
       sessionId,
       levelId,
       mode: 'single',
@@ -70,7 +72,8 @@ describe('evaluateLevel', () => {
   });
 
   it('ne valide pas sur un score ponctuel, même parfait, en une seule séance', () => {
-    const progress = evaluateLevel(LEVEL, session({ day: '2026-10-20', count: 50 }));
+    const progress = evaluateLevel(LEVEL, session({ day: '2026-10-20', count: 50, timeMs: 1000 }));
+    expect(progress.fastTrack.met).toBe(false); // 1 s > 2 000 ms × 0,25
     expect(progress.accuracy.met).toBe(true);
     expect(progress.volume.met).toBe(true);
     expect(progress.regularity.met).toBe(false);
@@ -139,6 +142,35 @@ describe('evaluateLevel', () => {
   });
 });
 
+describe('voie express', () => {
+  it('valide en une seule séance une performance exceptionnelle', () => {
+    const progress = evaluateLevel(LEVEL, session({ day: '2026-10-20', count: 25, timeMs: 450 }));
+    expect(progress.regularity.met).toBe(false);
+    expect(progress.fastTrack).toEqual({ accuracyTarget: 0.98, speedTargetMs: 500, met: true });
+    expect(progress.status).toBe('mastered');
+  });
+
+  it('exige quand même le volume minimal', () => {
+    const progress = evaluateLevel(LEVEL, session({ day: '2026-10-20', count: 15, timeMs: 300 }));
+    expect(progress.fastTrack.met).toBe(false);
+    expect(progress.status).toBe('learning');
+  });
+
+  it('ne s’applique pas en dessous de 98 % de réussite', () => {
+    // 1 erreur sur 20 notes = 95 %, au-dessus de l'objectif normal mais pas de la voie express.
+    const progress = evaluateLevel(LEVEL, session({ day: '2026-10-20', count: 20, misses: 1, timeMs: 300 }));
+    expect(progress.accuracy.met).toBe(true);
+    expect(progress.fastTrack.met).toBe(false);
+    expect(progress.status).toBe('learning');
+  });
+
+  it('ne s’applique pas si le temps médian dépasse le seuil express', () => {
+    const progress = evaluateLevel(LEVEL, session({ day: '2026-10-20', count: 30, timeMs: 501 }));
+    expect(progress.speed.met).toBe(true);
+    expect(progress.fastTrack.met).toBe(false);
+  });
+});
+
 describe('recommendLevel', () => {
   const progressOf = (statuses: Record<string, LevelProgress['status']>) =>
     new Map(Object.entries(statuses).map(([id, status]) => [id, { status } as LevelProgress]));
@@ -153,5 +185,24 @@ describe('recommendLevel', () => {
       ['level-1', 'level-2', 'level-3', 'level-4', 'level-5', 'level-6'].map((id) => [id, 'mastered' as const]),
     );
     expect(recommendLevel(LEVELS, progressOf(mastered)).id).toBe('level-8');
+  });
+});
+
+describe('nextLevel', () => {
+  const progressOf = (statuses: Record<string, LevelProgress['status']>) =>
+    new Map(Object.entries(statuses).map(([id, status]) => [id, { status } as LevelProgress]));
+  const level = (id: string) => LEVELS.find((item) => item.id === id)!;
+
+  it('propose le niveau suivant, même si un niveau précédent n’est pas maîtrisé', () => {
+    expect(nextLevel(LEVELS, level('level-3'), progressOf({ 'level-3': 'mastered' }))?.id).toBe('level-4');
+  });
+
+  it('saute les niveaux déjà maîtrisés ou indisponibles', () => {
+    const progress = progressOf({ 'level-5': 'mastered', 'level-6': 'mastered' });
+    expect(nextLevel(LEVELS, level('level-4'), progress)?.id).toBe('level-8');
+  });
+
+  it('ne propose rien après le dernier niveau jouable', () => {
+    expect(nextLevel(LEVELS, level('level-8'), progressOf({}))).toBeNull();
   });
 });

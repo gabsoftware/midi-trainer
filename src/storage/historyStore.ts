@@ -1,4 +1,11 @@
-import { isAttemptRecord, isSessionRecord, type AttemptRecord, type SessionRecord } from './records';
+import {
+  isAttemptRecord,
+  isProfileRecord,
+  isSessionRecord,
+  type AttemptRecord,
+  type ProfileRecord,
+  type SessionRecord,
+} from './records';
 
 export interface StoredHistory {
   /** Tentatives triées par date croissante. */
@@ -9,12 +16,18 @@ export interface StoredHistory {
   readonly skipped: number;
 }
 
-/** Persistance brute de l'historique, indépendante de React. */
+/** Persistance brute des élèves et de leur historique, indépendante de React. */
 export interface HistoryStore {
-  load(): Promise<StoredHistory>;
+  /** Élèves triés par date de création croissante. */
+  loadProfiles(): Promise<ProfileRecord[]>;
+  putProfile(profile: ProfileRecord): Promise<void>;
+  /** Supprime l'élève et tout son historique, en une seule transaction. */
+  deleteProfile(profileId: string): Promise<void>;
+  load(profileId: string): Promise<StoredHistory>;
   putSession(session: SessionRecord): Promise<void>;
   putAttempt(attempt: AttemptRecord): Promise<void>;
-  clear(): Promise<void>;
+  /** Efface l'historique d'un élève, sans supprimer l'élève. */
+  clear(profileId: string): Promise<void>;
 }
 
 function sortHistory(attempts: unknown[], sessions: unknown[]): StoredHistory {
@@ -27,12 +40,25 @@ function sortHistory(attempts: unknown[], sessions: unknown[]): StoredHistory {
   };
 }
 
+function sortProfiles(profiles: unknown[]): ProfileRecord[] {
+  return profiles.filter(isProfileRecord).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+
 // --- IndexedDB ---
 
 const DB_NAME = 'midi-trainer';
-const DB_VERSION = 1;
+/**
+ * Version du format de la base.
+ *
+ * Avant publication, il n'y a pas de migration : quand le format change, on
+ * incrémente la version et la base est recréée vide (voir le journal des
+ * décisions du cahier des charges). Les migrations commenceront après publication.
+ */
+const DB_VERSION = 2;
 const ATTEMPTS = 'attempts';
 const SESSIONS = 'sessions';
+const PROFILES = 'profiles';
+const BY_PROFILE = 'byProfile';
 
 function promisify<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -45,7 +71,7 @@ function transactionDone(transaction: IDBTransaction): Promise<void> {
   return new Promise((resolve, reject) => {
     transaction.oncomplete = () => resolve();
     transaction.onerror = () => reject(transaction.error);
-    transaction.onabort = () => reject(transaction.error ?? new Error('Transaction IndexedDB annulée.'));
+    transaction.onabort = () => reject(transaction.error ?? new Error('IndexedDB transaction aborted.'));
   });
 }
 
@@ -54,14 +80,15 @@ function openDatabase(factory: IDBFactory, name: string): Promise<IDBDatabase> {
     const request = factory.open(name, DB_VERSION);
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(ATTEMPTS)) {
-        const attempts = db.createObjectStore(ATTEMPTS, { keyPath: 'id' });
-        attempts.createIndex('bySession', 'sessionId');
-        attempts.createIndex('byCreatedAt', 'createdAt');
+      // Pas de migration avant publication : on repart d'une base vide.
+      for (const storeName of Array.from(db.objectStoreNames)) {
+        db.deleteObjectStore(storeName);
       }
-      if (!db.objectStoreNames.contains(SESSIONS)) {
-        db.createObjectStore(SESSIONS, { keyPath: 'id' });
-      }
+      db.createObjectStore(PROFILES, { keyPath: 'id' });
+      const attempts = db.createObjectStore(ATTEMPTS, { keyPath: 'id' });
+      attempts.createIndex(BY_PROFILE, 'profileId');
+      attempts.createIndex('bySession', 'sessionId');
+      db.createObjectStore(SESSIONS, { keyPath: 'id' }).createIndex(BY_PROFILE, 'profileId');
     };
     request.onsuccess = () => {
       const db = request.result;
@@ -70,8 +97,19 @@ function openDatabase(factory: IDBFactory, name: string): Promise<IDBDatabase> {
       resolve(db);
     };
     request.onerror = () => reject(request.error);
-    request.onblocked = () => reject(new Error('Base de données bloquée par un autre onglet.'));
+    request.onblocked = () => reject(new Error('Database blocked by another tab.'));
   });
+}
+
+/** Supprime, dans une transaction ouverte, les enregistrements d'un élève. */
+function deleteByProfile(transaction: IDBTransaction, storeName: string, profileId: string): void {
+  const request = transaction.objectStore(storeName).index(BY_PROFILE).openCursor(IDBKeyRange.only(profileId));
+  request.onsuccess = () => {
+    const cursor = request.result;
+    if (!cursor) return;
+    cursor.delete();
+    cursor.continue();
+  };
 }
 
 export class IndexedDbHistoryStore implements HistoryStore {
@@ -92,30 +130,48 @@ export class IndexedDbHistoryStore implements HistoryStore {
     return this.dbPromise;
   }
 
-  async load(): Promise<StoredHistory> {
+  async loadProfiles(): Promise<ProfileRecord[]> {
+    const db = await this.db();
+    const profiles = await promisify<unknown[]>(db.transaction(PROFILES, 'readonly').objectStore(PROFILES).getAll());
+    return sortProfiles(profiles);
+  }
+
+  putProfile(profile: ProfileRecord): Promise<void> {
+    return this.write([PROFILES], (transaction) => transaction.objectStore(PROFILES).put(profile));
+  }
+
+  deleteProfile(profileId: string): Promise<void> {
+    return this.write([PROFILES, ATTEMPTS, SESSIONS], (transaction) => {
+      transaction.objectStore(PROFILES).delete(profileId);
+      deleteByProfile(transaction, ATTEMPTS, profileId);
+      deleteByProfile(transaction, SESSIONS, profileId);
+    });
+  }
+
+  async load(profileId: string): Promise<StoredHistory> {
     const db = await this.db();
     const transaction = db.transaction([ATTEMPTS, SESSIONS], 'readonly');
+    const range = IDBKeyRange.only(profileId);
     const [attempts, sessions] = await Promise.all([
-      promisify<unknown[]>(transaction.objectStore(ATTEMPTS).getAll()),
-      promisify<unknown[]>(transaction.objectStore(SESSIONS).getAll()),
+      promisify<unknown[]>(transaction.objectStore(ATTEMPTS).index(BY_PROFILE).getAll(range)),
+      promisify<unknown[]>(transaction.objectStore(SESSIONS).index(BY_PROFILE).getAll(range)),
     ]);
     return sortHistory(attempts, sessions);
   }
 
   putSession(session: SessionRecord): Promise<void> {
-    return this.write(SESSIONS, (store) => store.put(session));
+    return this.write([SESSIONS], (transaction) => transaction.objectStore(SESSIONS).put(session));
   }
 
   putAttempt(attempt: AttemptRecord): Promise<void> {
-    return this.write(ATTEMPTS, (store) => store.put(attempt));
+    return this.write([ATTEMPTS], (transaction) => transaction.objectStore(ATTEMPTS).put(attempt));
   }
 
-  async clear(): Promise<void> {
-    const db = await this.db();
-    const transaction = db.transaction([ATTEMPTS, SESSIONS], 'readwrite');
-    transaction.objectStore(ATTEMPTS).clear();
-    transaction.objectStore(SESSIONS).clear();
-    await transactionDone(transaction);
+  clear(profileId: string): Promise<void> {
+    return this.write([ATTEMPTS, SESSIONS], (transaction) => {
+      deleteByProfile(transaction, ATTEMPTS, profileId);
+      deleteByProfile(transaction, SESSIONS, profileId);
+    });
   }
 
   close(): void {
@@ -123,10 +179,10 @@ export class IndexedDbHistoryStore implements HistoryStore {
     this.dbPromise = null;
   }
 
-  private async write(storeName: string, operation: (store: IDBObjectStore) => void): Promise<void> {
+  private async write(storeNames: string[], operation: (transaction: IDBTransaction) => void): Promise<void> {
     const db = await this.db();
-    const transaction = db.transaction(storeName, 'readwrite');
-    operation(transaction.objectStore(storeName));
+    const transaction = db.transaction(storeNames, 'readwrite');
+    operation(transaction);
     // On attend la validation de la transaction : la donnée est alors durable.
     await transactionDone(transaction);
   }
@@ -135,11 +191,28 @@ export class IndexedDbHistoryStore implements HistoryStore {
 // --- Mémoire (tests, ou repli si IndexedDB est indisponible) ---
 
 export class MemoryHistoryStore implements HistoryStore {
+  private readonly profiles = new Map<string, ProfileRecord>();
   private readonly attempts = new Map<string, AttemptRecord>();
   private readonly sessions = new Map<string, SessionRecord>();
 
-  load(): Promise<StoredHistory> {
-    return Promise.resolve(sortHistory([...this.attempts.values()], [...this.sessions.values()]));
+  loadProfiles(): Promise<ProfileRecord[]> {
+    return Promise.resolve(sortProfiles([...this.profiles.values()]));
+  }
+
+  putProfile(profile: ProfileRecord): Promise<void> {
+    this.profiles.set(profile.id, profile);
+    return Promise.resolve();
+  }
+
+  async deleteProfile(profileId: string): Promise<void> {
+    this.profiles.delete(profileId);
+    await this.clear(profileId);
+  }
+
+  load(profileId: string): Promise<StoredHistory> {
+    const mine = <T extends { profileId: string }>(records: Map<string, T>) =>
+      [...records.values()].filter((record) => record.profileId === profileId);
+    return Promise.resolve(sortHistory(mine(this.attempts), mine(this.sessions)));
   }
 
   putSession(session: SessionRecord): Promise<void> {
@@ -152,9 +225,12 @@ export class MemoryHistoryStore implements HistoryStore {
     return Promise.resolve();
   }
 
-  clear(): Promise<void> {
-    this.attempts.clear();
-    this.sessions.clear();
+  clear(profileId: string): Promise<void> {
+    for (const records of [this.attempts, this.sessions] as Map<string, { profileId: string }>[]) {
+      for (const [id, record] of records) {
+        if (record.profileId === profileId) records.delete(id);
+      }
+    }
     return Promise.resolve();
   }
 }

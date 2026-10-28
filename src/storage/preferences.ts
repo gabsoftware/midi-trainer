@@ -10,7 +10,10 @@ export interface Preferences {
 
 export const DEFAULT_PREFERENCES: Preferences = { levelId: null, octaveMode: 'level', computerKeyboard: true };
 
-const STORAGE_KEY = 'midi-trainer:preferences';
+/** Réglages propres à chaque élève. */
+function storageKey(profileId: string): string {
+  return `midi-trainer:preferences:${profileId}`;
+}
 
 /** Relit les préférences en ignorant toute valeur invalide. */
 export function parsePreferences(raw: string | null): Preferences {
@@ -32,17 +35,25 @@ export function parsePreferences(raw: string | null): Preferences {
   };
 }
 
-export function loadPreferences(): Preferences {
+export function loadPreferences(profileId: string): Preferences {
   try {
-    return parsePreferences(localStorage.getItem(STORAGE_KEY));
+    return parsePreferences(localStorage.getItem(storageKey(profileId)));
   } catch {
     return DEFAULT_PREFERENCES;
   }
 }
 
-export function savePreferences(preferences: Preferences): void {
+export function deletePreferences(profileId: string): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(preferences));
+    localStorage.removeItem(storageKey(profileId));
+  } catch {
+    // rien à nettoyer
+  }
+}
+
+export function savePreferences(profileId: string, preferences: Preferences): void {
+  try {
+    localStorage.setItem(storageKey(profileId), JSON.stringify(preferences));
   } catch {
     // préférences non conservées, sans conséquence pour la séance
   }

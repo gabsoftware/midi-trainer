@@ -3,10 +3,29 @@ import { isValidMidiNote } from '../music/pitch';
 import type { OctaveMode } from '../music/validation';
 
 /**
- * Enregistrements persistés. Le champ `schema` permettra de migrer les
- * données si leur format évolue.
+ * Enregistrements persistés. Le champ `schema` servira aux migrations après
+ * publication ; d'ici là, un changement de format recrée la base vide.
  */
 export const RECORD_SCHEMA = 1;
+
+/** Élève. Aucune authentification : un simple profil local. */
+export interface ProfileRecord {
+  readonly schema: typeof RECORD_SCHEMA;
+  readonly id: string;
+  /** Nom choisi ; chaîne vide = profil sans nom (affiché « Élève 1 »…). */
+  readonly name: string;
+  readonly createdAt: string;
+}
+
+export const MAX_PROFILE_NAME_LENGTH = 40;
+
+export function normalizeProfileName(name: string): string {
+  return name.trim().replace(/\s+/g, ' ').slice(0, MAX_PROFILE_NAME_LENGTH);
+}
+
+export function createProfileRecord(id: string, name: string, now: Date): ProfileRecord {
+  return { schema: RECORD_SCHEMA, id, name: normalizeProfileName(name), createdAt: now.toISOString() };
+}
 
 export type ExerciseMode = 'single' | 'sequence';
 export type ClefName = 'treble' | 'bass' | 'grand';
@@ -21,6 +40,7 @@ export interface ExerciseContext {
 export interface SessionRecord extends ExerciseContext {
   readonly schema: typeof RECORD_SCHEMA;
   readonly id: string;
+  readonly profileId: string;
   /** Date et heure de début (horloge murale, ISO 8601). */
   readonly startedAt: string;
   /** Date et heure de la dernière note réussie. */
@@ -31,6 +51,7 @@ export interface SessionRecord extends ExerciseContext {
 export interface AttemptRecord extends ExerciseContext {
   readonly schema: typeof RECORD_SCHEMA;
   readonly id: string;
+  readonly profileId: string;
   readonly sessionId: string;
   /** Date et heure de la bonne réponse (horloge murale, ISO 8601). */
   readonly createdAt: string;
@@ -47,9 +68,17 @@ export interface AttemptRecord extends ExerciseContext {
   readonly octaveMode: OctaveMode;
 }
 
-export function createSessionRecord(id: string, context: ExerciseContext, now: Date): SessionRecord {
+export function createSessionRecord(id: string, profileId: string, context: ExerciseContext, now: Date): SessionRecord {
   const timestamp = now.toISOString();
-  return { schema: RECORD_SCHEMA, id, ...context, startedAt: timestamp, lastActivityAt: timestamp, attemptCount: 0 };
+  return {
+    schema: RECORD_SCHEMA,
+    id,
+    profileId,
+    ...context,
+    startedAt: timestamp,
+    lastActivityAt: timestamp,
+    attemptCount: 0,
+  };
 }
 
 export function createAttemptRecord(
@@ -61,6 +90,7 @@ export function createAttemptRecord(
   return {
     schema: RECORD_SCHEMA,
     id,
+    profileId: session.profileId,
     sessionId: session.id,
     levelId: session.levelId,
     mode: session.mode,
@@ -104,11 +134,23 @@ function hasContext(value: Unknown): boolean {
   );
 }
 
+export function isProfileRecord(value: unknown): value is ProfileRecord {
+  return (
+    isObject(value) &&
+    value.schema === RECORD_SCHEMA &&
+    isNonEmptyString(value.id) &&
+    typeof value.name === 'string' &&
+    value.name.length <= MAX_PROFILE_NAME_LENGTH &&
+    isIsoDate(value.createdAt)
+  );
+}
+
 export function isSessionRecord(value: unknown): value is SessionRecord {
   return (
     isObject(value) &&
     value.schema === RECORD_SCHEMA &&
     isNonEmptyString(value.id) &&
+    isNonEmptyString(value.profileId) &&
     hasContext(value) &&
     isIsoDate(value.startedAt) &&
     isIsoDate(value.lastActivityAt) &&
@@ -122,6 +164,7 @@ export function isAttemptRecord(value: unknown): value is AttemptRecord {
     isObject(value) &&
     value.schema === RECORD_SCHEMA &&
     isNonEmptyString(value.id) &&
+    isNonEmptyString(value.profileId) &&
     isNonEmptyString(value.sessionId) &&
     hasContext(value) &&
     isIsoDate(value.createdAt) &&

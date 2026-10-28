@@ -40,6 +40,10 @@ describe('LEVELS', () => {
       expect(mastery.minFirstTryAccuracy, id).toBeLessThanOrEqual(1);
       expect(mastery.minSessions, id).toBeGreaterThanOrEqual(2);
       expect(mastery.minDays, id).toBeLessThanOrEqual(mastery.minSessions);
+      // La voie express doit être plus exigeante que la maîtrise normale.
+      expect(mastery.fastTrack.minFirstTryAccuracy, id).toBeGreaterThan(mastery.minFirstTryAccuracy);
+      expect(mastery.fastTrack.maxMedianRatio, id).toBeGreaterThan(0);
+      expect(mastery.fastTrack.maxMedianRatio, id).toBeLessThan(1);
     }
   });
 
