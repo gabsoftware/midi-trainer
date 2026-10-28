@@ -88,7 +88,23 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>{t.appTitle}</h1>
+        <h1>
+          {/* Vrai lien (nouvel onglet possible) ; un clic simple revient à l'entraînement sans recharger. */}
+          <a
+            href={import.meta.env.BASE_URL}
+            className="brand"
+            title={t.homeLink}
+            onClick={(event) => {
+              if (event.button !== 0 || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
+              event.preventDefault();
+              setView('training');
+              if (picker === 'open') setPicker('closed');
+            }}
+          >
+            <img src={`${import.meta.env.BASE_URL}favicon.svg`} alt="" width="28" height="28" />
+            {t.appTitle}
+          </a>
+        </h1>
         {showNav && (
           <nav className="main-nav">
             <button

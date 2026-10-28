@@ -1,7 +1,7 @@
 {
-  "name": "Lecture de notes au clavier MIDI",
-  "short_name": "Lecture de notes",
-  "description": "Entraînement progressif à la lecture de notes avec un clavier MIDI.",
+  "name": "Apprendre à lire les notes",
+  "short_name": "Lire les notes",
+  "description": "Apprendre à lire les notes, pas à pas, en jouant sur un clavier.",
   "lang": "fr",
   "start_url": "/",
   "display": "standalone",

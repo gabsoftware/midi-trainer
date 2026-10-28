@@ -54,10 +54,13 @@ function seo(env: Record<string, string>): Plugin {
       const data = {
         '@context': 'https://schema.org',
         '@type': 'WebApplication',
-        name: 'Lecture de notes au clavier MIDI',
-        alternateName: 'Note Reading with a MIDI Keyboard',
+        name: 'Apprendre à lire les notes',
+        alternateName: 'Learn to Read Music',
         description:
-          'Entraînement progressif à la lecture de notes sur la portée avec un clavier MIDI : 10 niveaux, examens de validation, statistiques, plusieurs élèves.',
+          'Apprendre à lire les notes sur la portée, pas à pas, en jouant chaque note sur un clavier : 10 niveaux, examens de validation, statistiques, plusieurs élèves.',
+        educationalUse: 'practice',
+        learningResourceType: 'exercise',
+        teaches: 'Lecture de notes sur la portée (clé de sol, clé de fa, grand système)',
         applicationCategory: 'EducationalApplication',
         operatingSystem: 'Web',
         browserRequirements: 'Chrome, Edge ou Firefox ; Web MIDI pour un clavier MIDI',

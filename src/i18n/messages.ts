@@ -8,9 +8,10 @@ import type { Locale } from './locale';
  * Les textes paramétrés sont des fonctions.
  */
 const fr = {
-  appTitle: 'Lecture de notes',
+  appTitle: 'Apprendre à lire les notes',
+  homeLink: 'Retour à l’entraînement',
   /** Titre de l'onglet et des résultats de recherche (même texte que dans index.html). */
-  documentTitle: 'Lecture de notes au clavier MIDI — entraînement au déchiffrage',
+  documentTitle: 'Apprendre à lire les notes au piano — exercices pas à pas',
   language: 'Langue',
 
   clef: { treble: 'Clé de sol', bass: 'Clé de fa', grand: 'Grand système' } satisfies Record<LevelClef, string>,
@@ -93,7 +94,7 @@ const fr = {
   aboutVersion: (version: string) => `Version ${version}`,
   aboutCommit: (commit: string) => `build ${commit}`,
   aboutDescription:
-    'Entraînement à la lecture de notes sur la portée, avec un clavier MIDI, le clavier de l’ordinateur ou le clavier affiché.',
+    'Apprendre à lire les notes sur la portée, pas à pas, en jouant chaque note sur un clavier MIDI, le clavier de l’ordinateur ou le clavier affiché.',
   madeBy: 'Réalisé par',
   aboutPrivacy:
     'La progression des élèves reste dans ce navigateur : rien n’est envoyé sur Internet. Pensez à exporter une sauvegarde.',
@@ -263,8 +264,9 @@ const fr = {
 export type Messages = typeof fr;
 
 const en: Messages = {
-  appTitle: 'Note Reading',
-  documentTitle: 'Note Reading with a MIDI Keyboard — Sight-Reading Practice',
+  appTitle: 'Learn to Read Music',
+  homeLink: 'Back to practice',
+  documentTitle: 'Learn to Read Music on the Piano — Step-by-Step Practice',
   language: 'Language',
 
   clef: { treble: 'Treble clef', bass: 'Bass clef', grand: 'Grand staff' },
@@ -340,7 +342,8 @@ const en: Messages = {
   aboutTitle: (app) => `About “${app}”`,
   aboutVersion: (version) => `Version ${version}`,
   aboutCommit: (commit) => `build ${commit}`,
-  aboutDescription: 'Practice reading notes on the staff, with a MIDI keyboard, the computer keyboard or the on-screen keyboard.',
+  aboutDescription:
+    'Learn to read notes on the staff, step by step, by playing each note on a MIDI keyboard, the computer keyboard or the on-screen keyboard.',
   madeBy: 'Made by',
   aboutPrivacy: 'Student progress stays in this browser: nothing is sent over the Internet. Remember to export a backup.',
   aboutLicenseTitle: 'License',
