@@ -32,6 +32,7 @@ Le cahier des charges complet et le journal des décisions sont dans [docs/cahie
   - mode assisté (nom des notes affiché ; ces notes ne comptent ni pour la maîtrise ni pour l'adaptation) ;
   - octave, simulation au clavier d'ordinateur.
 - **Clavier affiché jouable** à la souris ou au doigt. Sa forme est un réglage par élève, pour ressembler à son clavier : « piano » (touches blanches égales, touches noires décalées dans chaque groupe, par défaut) ou « demi-tons égaux » (touches noires centrées sur leur demi-ton, Do–Ré–Mi un peu plus étroites, comme sur certains claviers numériques).
+- **Son de piano** pour le clavier affiché et le clavier de l'ordinateur (réglage par élève, activé par défaut ; jamais pour un clavier MIDI, qui a son propre son). Les 88 touches à 4 vélocités (20, 40, 80, 115) ; un clic près du bord avant de la touche joue plus fort qu'un clic près du fond, comme sur un vrai piano. Chaque note joue son enregistrement en entier. Les sons du niveau sont préparés à l'avance, les autres chargés au premier usage. **Les sons ne sont pas fournis** : voir [Sons de piano](#sons-de-piano). Sans eux, le clavier est simplement silencieux.
 
 - **Statistiques** par élève, filtrables par niveau :
   - notes jouées et séances ;
@@ -63,6 +64,51 @@ Au premier lancement, le navigateur demande l'autorisation d'accéder aux périp
 
 Sous WSL2, lancez `npm run dev` dans WSL et ouvrez `http://localhost:5173` dans Chrome ou Edge côté Windows. Le clavier MIDI est vu par le navigateur Windows, donc aucune configuration USB n'est nécessaire dans WSL.
 
+## Sons de piano
+
+Les sons ne font pas partie du dépôt : chacun produit les siens, avec le piano de son choix (instrument logiciel ou clavier réel). Le dépôt fournit les deux outils qui encadrent l'enregistrement : un fichier MIDI à faire jouer, puis le découpage du résultat. L'enregistrement lui-même se fait avec vos propres logiciels.
+
+**Prérequis**, en plus de Node.js :
+
+- **Python 3** avec **numpy** ;
+- **ffmpeg** avec l'encodeur **libopus** (inclus dans les paquets courants).
+
+Sous Debian ou Ubuntu : `sudo apt install python3-numpy ffmpeg`. Pour vérifier : `ffmpeg -hide_banner -encoders | grep libopus` doit afficher une ligne. Le script de découpage vérifie aussi ces prérequis au démarrage et indique ce qui manque.
+
+**1. Créer le fichier MIDI** (en dehors du dépôt, par exemple dans `~/piano-samples/`) :
+
+```bash
+python3 scripts/sampling/make_sampling_midi.py ~/piano-samples/sampling.mid
+```
+
+Il écrit `sampling.mid` et `sampling.json` (le moment de chaque note, utilisé au découpage ; ne pas le modifier). Le fichier MIDI joue les 88 touches (La0 à Do8), de la plus grave à la plus aiguë, quatre fois : vélocités 20, 40, 80, puis 115. Chaque note est tenue 0,25 s, puis 4 s séparent deux notes. Durée totale : environ 23 min 30 s, dont 2 s de silence au début.
+
+**2. Enregistrer le piano** jouant ce fichier MIDI, dans un seul fichier WAV :
+
+- **Format** : WAV PCM 16, 24 ou 32 bits, ou flottant 32 bits ; mono ou stéréo ; 44,1 ou 48 kHz (48 kHz conseillé).
+- **Tout le fichier MIDI, d'une traite**, sans rien couper ni réordonner. Un rendu hors ligne (export audio direct du fichier MIDI, si votre logiciel le propose) est le plus sûr. Un enregistrement en temps réel convient aussi : le début n'a pas besoin d'être aligné, le décalage est retrouvé automatiquement à partir de la première note.
+- **Son sec** : pas de réverbération, ou très peu (elle serait coupée par les fondus).
+- **Pas de limiteur, de compresseur ni de normalisation**, et pas de saturation : les notes fortes doivent rester sous 0 dBFS (−1 dBFS conseillé). La différence de volume entre vélocités fait partie du son.
+- **Pédale forte relevée** (le fichier MIDI la relève au début ; vérifiez qu'aucun réglage de l'instrument ne la force).
+
+**3. Vérifier l'enregistrement**, sans rien écrire :
+
+```bash
+python3 scripts/sampling/slice_samples.py ~/piano-samples/sampling.wav ~/piano-samples/sampling.json --report
+```
+
+Le rapport indique le décalage trouvé, le niveau des notes et, s'il y en a, les problèmes note par note : attaque au mauvais endroit (décrochage pendant un enregistrement en temps réel), note encore audible quand la suivante commence, saturation. « Aucun problème détecté » : passez à l'étape suivante. Sinon, corrigez l'enregistrement et recommencez.
+
+**4. Découper et encoder** dans le dossier lu par l'application :
+
+```bash
+python3 scripts/sampling/slice_samples.py ~/piano-samples/sampling.wav ~/piano-samples/sampling.json public/samples/piano
+```
+
+Chaque note devient un fichier `public/samples/piano/<vélocité>/<note MIDI>.ogg` (Opus 96 kbit/s, environ 25 Ko), coupé à l'attaque, raccourci dès qu'il devient inaudible (entre 1 et 4 s) et terminé par un fondu de 0,5 s. Soit 352 fichiers, environ 9 Mo. Le dossier `public/samples/` est ignoré par git : les sons restent sur votre machine, sont servis par `npm run dev` et inclus par `npm run build` (donc publiés par `npm run deploy`).
+
+Pour vérifier : `npm run dev`, puis cliquez sur le clavier affiché. Le réglage « Son de piano » est dans l'écran des réglages (⚙).
+
 ## Utilisation au clavier
 
 | Touche | Action |
@@ -79,7 +125,7 @@ Sous WSL2, lancez `npm run dev` dans WSL et ouvrez `http://localhost:5173` dans 
 
 ## Choix techniques
 
-- **Numéros MIDI comme référence interne.** Aucune dépendance à la numérotation d'octave d'un constructeur (Yamaha, Roland…). L'affichage utilise la notation scientifique dans les deux langues : Do4 / C4 = do central = MIDI 60.
+- **Numéros MIDI comme référence interne.** Aucune dépendance à la numérotation d'octave propre à chaque constructeur. L'affichage utilise la notation scientifique dans les deux langues : Do4 / C4 = do central = MIDI 60.
 - **Un seul périphérique écouté à la fois.** `MidiInputManager` détache toujours l'entrée précédente avant d'attacher la suivante, avec un gestionnaire d'événement de référence stable. Un double `addEventListener` reste donc sans effet. Le branchement à chaud est géré : si le clavier choisi revient, y compris sous un autre identifiant ou comme nouvel objet, l'écoute reprend. Ces cas sont couverts par des tests avec un faux Web MIDI.
 - **Tous les canaux MIDI** sont acceptés. Un Note On de vélocité 0 est un Note Off. Les autres messages (pédale, horloge, active sensing…) sont ignorés.
 - **Horloge monotone.** Les temps sont calculés à partir de l'horodatage `MIDIMessageEvent.timeStamp`, sur la même base que `performance.now()`, et non à l'instant de traitement par React. Une touche horodatée avant l'affichage de la note est ignorée.
@@ -118,6 +164,7 @@ Le build de production (`dist/`) ne contient ni les tests ni les dépendances de
 
 ```
 src/
+  audio/       sampleLayers.ts (choix de la couche de vélocité, volume, vélocité d'un clic), pianoSampler.ts (lecture Web Audio)
   midi/        events.ts (décodage des messages), MidiInputManager.ts (accès, périphériques, branchement à chaud),
                computerKeyboard.ts (simulation)
   music/       pitch.ts (conversions MIDI ↔ hauteur, noms de notes, clés VexFlow), validation.ts (octave exacte/indifférente)
@@ -134,4 +181,8 @@ src/
   components/  Trainer, StatsView, SettingsView, LineChart, LevelPicker, ProfilePicker, WelcomeName, StaffView (VexFlow),
                MidiStatus, PianoKeys, LiveTimer
   App.tsx      en-tête (élève, état MIDI, langue), écran « Qui joue ? » ou écran d'entraînement
+public/samples/piano/<vélocité>/<note MIDI>.ogg   sons de piano (Opus), non fournis : voir « Sons de piano »
+scripts/sampling/
+  make_sampling_midi.py   fichier MIDI à faire jouer par un piano, enregistré en un seul .wav
+  slice_samples.py        vérifie le .wav (--report), puis le découpe en une note par fichier (fondus, encodage Opus)
 ```

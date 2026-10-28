@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { pianoSampler, playNoteEvent } from '../audio/pianoSampler';
 import { generateLine } from '../exercises/lineGenerator';
 import {
   pauseSequence,
@@ -327,6 +328,7 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
 
   const handleNote = useCallback(
     (event: NoteEvent) => {
+      if (latest.current.preferences.sound) playNoteEvent(event);
       setPressed((current) => {
         const updated = new Set(current);
         if (event.type === 'noteon') updated.add(event.note);
@@ -350,6 +352,13 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
     const timer = setTimeout(() => setFlashEndedAt(lastAnswer.at), WRONG_FLASH_MS);
     return () => clearTimeout(timer);
   }, [lastAnswer]);
+
+  // Son activé : les notes du niveau sont préparées à l'avance, pour sonner sans délai.
+  const { sound } = preferences;
+  const levelNotes = level.notes;
+  useEffect(() => {
+    if (sound) pianoSampler.preload(levelNotes);
+  }, [sound, levelNotes]);
 
   // Passage automatique à la ligne suivante une fois la ligne terminée.
   const lineDone = line?.done ?? false;

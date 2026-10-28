@@ -1,4 +1,5 @@
 import { useRef, type PointerEvent } from 'react';
+import { clickVelocity } from '../audio/sampleLayers';
 import { useI18n } from '../i18n/context';
 import type { NoteListener } from '../midi/events';
 import { keyboardLayout, type KeyboardShape } from './keyboardLayout';
@@ -13,7 +14,8 @@ interface PianoKeysProps {
   readonly high?: number;
   /**
    * Touches jouables à la souris ou au doigt : chaque appui émet un Note On (puis un Note Off),
-   * horodaté comme un événement MIDI, donc traité exactement comme un vrai clavier.
+   * horodaté comme un événement MIDI, donc traité exactement comme un vrai clavier. La vélocité
+   * dépend de l'endroit de l'appui : plus fort près du bord avant de la touche.
    */
   readonly onNote?: NoteListener;
   readonly shape?: KeyboardShape;
@@ -29,12 +31,15 @@ export function PianoKeys({ pressed, low = 36, high = 96, onNote, shape = 'piano
   const held = useRef(new Map<number, number>());
 
   const press = (event: PointerEvent<SVGSVGElement>) => {
-    const note = Number((event.target as Element).getAttribute('data-note'));
+    const key = event.target as Element;
+    const note = Number(key.getAttribute('data-note'));
     if (!onNote || event.button !== 0 || !Number.isInteger(note) || held.current.has(event.pointerId)) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture(event.pointerId);
     held.current.set(event.pointerId, note);
-    onNote({ type: 'noteon', note, velocity: 96, channel: 0, timestamp: event.timeStamp, source: 'on-screen' });
+    const bounds = key.getBoundingClientRect();
+    const velocity = clickVelocity((event.clientY - bounds.top) / bounds.height);
+    onNote({ type: 'noteon', note, velocity, channel: 0, timestamp: event.timeStamp, source: 'on-screen' });
   };
 
   const release = (event: PointerEvent<SVGSVGElement>) => {

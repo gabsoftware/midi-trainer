@@ -1,3 +1,4 @@
+import { playNoteEvent } from '../audio/pianoSampler';
 import { useI18n } from '../i18n/context';
 import { ADVANCE_DELAYS_MS, SESSION_LENGTHS, type Preferences } from '../storage/preferences';
 import { PianoKeys } from './PianoKeys';
@@ -108,6 +109,14 @@ export function SettingsView({ studentName, preferences, onChange }: SettingsVie
           <span>{t.computerKeyboard}</span>
         </label>
         <label>
+          <input
+            type="checkbox"
+            checked={preferences.sound}
+            onChange={(event) => onChange({ sound: event.target.checked })}
+          />
+          <span>{t.sound}</span>
+        </label>
+        <label>
           <span>{t.keyboardShape}</span>
           <select
             value={preferences.keyboardShape}
@@ -118,7 +127,13 @@ export function SettingsView({ studentName, preferences, onChange }: SettingsVie
           </select>
         </label>
         <p className="hint">{t.keyboardShapeHint}</p>
-        <PianoKeys pressed={NO_KEYS} low={60} high={83} shape={preferences.keyboardShape} />
+        <PianoKeys
+          pressed={NO_KEYS}
+          low={60}
+          high={83}
+          shape={preferences.keyboardShape}
+          onNote={preferences.sound ? playNoteEvent : undefined}
+        />
       </section>
     </main>
   );

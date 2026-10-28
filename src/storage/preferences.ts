@@ -18,6 +18,8 @@ export interface Preferences {
   readonly showNoteNames: boolean;
   /** Forme du clavier affiché, pour ressembler au clavier de l'élève. */
   readonly keyboardShape: KeyboardShape;
+  /** Son de piano pour le clavier affiché et le clavier de l'ordinateur (un vrai clavier a déjà le sien). */
+  readonly sound: boolean;
 }
 
 export const SESSION_LENGTHS = [10, 20, 30, 50, 0] as const;
@@ -33,6 +35,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   advanceDelayMs: 600,
   showNoteNames: false,
   keyboardShape: 'piano',
+  sound: true,
 };
 
 export const KEYBOARD_SHAPES: readonly KeyboardShape[] = ['piano', 'equal-semitones'];
@@ -72,6 +75,7 @@ export function parsePreferences(raw: string | null): Preferences {
     advanceDelayMs: oneOf<number>(value.advanceDelayMs, ADVANCE_DELAYS_MS, DEFAULT_PREFERENCES.advanceDelayMs),
     showNoteNames: booleanOr(value.showNoteNames, DEFAULT_PREFERENCES.showNoteNames),
     keyboardShape: oneOf(value.keyboardShape, KEYBOARD_SHAPES, DEFAULT_PREFERENCES.keyboardShape),
+    sound: booleanOr(value.sound, DEFAULT_PREFERENCES.sound),
   };
 }
 

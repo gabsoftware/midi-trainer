@@ -10,6 +10,10 @@ lerna-debug.log*
 # Informations du serveur de déploiement (privées)
 .env.deploy
 
+# Sons de piano : non fournis, chacun produit les siens (voir README, « Sons de piano »).
+# Ils restent dans le dossier de travail, donc servis en développement et publiés par npm run deploy.
+public/samples/
+
 node_modules
 dist
 dist-ssr
@@ -25,3 +29,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Cache Python (scripts/sampling)
+__pycache__/

@@ -19,6 +19,7 @@ describe('parsePreferences', () => {
       advanceDelayMs: 1500,
       showNoteNames: true,
       keyboardShape: 'equal-semitones',
+      sound: false,
     };
     expect(parsePreferences(JSON.stringify(prefs))).toEqual(prefs);
   });
@@ -34,6 +35,7 @@ describe('parsePreferences', () => {
       advanceDelayMs: 50,
       showNoteNames: 'non',
       keyboardShape: 'harpe',
+      sound: 'fort',
     };
     expect(parsePreferences(JSON.stringify(invalid))).toEqual(DEFAULT_PREFERENCES);
   });
