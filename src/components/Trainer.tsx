@@ -261,7 +261,7 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
 
   /**
    * Entrée :
-   * - examen terminé : niveau suivant s'il est réussi, nouvel essai sinon ;
+   * - examen terminé : niveau suivant s'il est réussi (ou entraînement s'il n'y en a plus), nouvel essai sinon ;
    * - examen ou niveau suivant conseillé : y aller ;
    * - aucune séance, ou séance terminée : nouvelle séance ;
    * - ligne terminée sans passage automatique : ligne suivante ;
@@ -274,8 +274,7 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
     if (runningExam) {
       if (!runningExam.result) return;
       if (!runningExam.result.passed) startExam(runningExam.level);
-      else if (nextTarget) startLevel(nextTarget);
-      else leaveExam();
+      else startLevel(nextTarget ?? runningExam.level);
       return;
     }
     const running = sessionRef.current;
@@ -283,7 +282,7 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
     else if (suggestNext && nextTarget) startLevel(nextTarget);
     else if (!running || running.finished) startLevel(current);
     else if (running.line.done && !prefs.autoAdvance) advance();
-  }, [advance, examRef, leaveExam, startExam, startLevel]);
+  }, [advance, examRef, startExam, startLevel]);
 
   const dismissAdvice = useCallback(() => setDismissedAdviceFor(latest.current.level.id), []);
 
@@ -504,26 +503,25 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
                 </p>
               )}
               <div className="advice-actions">
-                {exam.result.passed ? (
-                  next ? (
-                    <button type="button" className="primary" onClick={() => startLevel(next)}>
-                      {t.goToLevel(next.number)} <kbd>{t.keyEnter}</kbd>
-                    </button>
-                  ) : (
-                    <button type="button" className="primary" onClick={leaveExam}>
-                      {t.backToTraining} <kbd>{t.keyEnter}</kbd>
-                    </button>
-                  )
-                ) : (
-                  <>
-                    <button type="button" className="primary" onClick={() => startExam(level)}>
-                      {t.retryExam} <kbd>{t.keyEnter}</kbd>
-                    </button>
-                    <button type="button" onClick={leaveExam}>
-                      {t.backToTraining}
-                    </button>
-                  </>
+                {exam.result.passed && next && (
+                  <button type="button" className="primary" onClick={() => startLevel(next)}>
+                    {t.goToLevel(next.number)} <kbd>{t.keyEnter}</kbd>
+                  </button>
                 )}
+                <button
+                  type="button"
+                  className={exam.result.passed ? '' : 'primary'}
+                  onClick={() => startExam(level)}
+                >
+                  {t.retryExam} {!exam.result.passed && <kbd>{t.keyEnter}</kbd>}
+                </button>
+                <button
+                  type="button"
+                  className={exam.result.passed && !next ? 'primary' : ''}
+                  onClick={() => startLevel(level)}
+                >
+                  {t.practiceLevel(level.number)} {exam.result.passed && !next && <kbd>{t.keyEnter}</kbd>}
+                </button>
               </div>
             </div>
           ) : exam ? (
