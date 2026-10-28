@@ -22,8 +22,14 @@ export interface RecordUpgrade {
   readonly upgrade: (kind: RecordKind, record: Readonly<Record<string, unknown>>) => Record<string, unknown>;
 }
 
-/** Aucune étape pour l'instant : le schéma 1 est le format de la première publication. */
-export const RECORD_UPGRADES: readonly RecordUpgrade[] = [];
+/** Étapes publiées : ne jamais les modifier, seulement en ajouter. */
+export const RECORD_UPGRADES: readonly RecordUpgrade[] = [
+  // Schéma 2 : le mode assisté n'existait pas, les anciennes tentatives ne l'étaient donc pas.
+  {
+    toSchema: 2,
+    upgrade: (kind, record) => (kind === 'profile' ? { ...record } : { ...record, assisted: false }),
+  },
+];
 
 /**
  * Amène un enregistrement au schéma courant. Une valeur qui n'est pas un objet,

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { BACKUP_FORMAT, backupFileName, createBackup, MAX_BACKUP_BYTES, parseBackup } from './backup';
 import { createAttemptRecord, createProfileRecord, createSessionRecord, type ExerciseContext } from './records';
-import type { RecordUpgrade } from './upgrades';
+import { RECORD_UPGRADES, type RecordUpgrade } from './upgrades';
 
-const CONTEXT: ExerciseContext = { levelId: 'level-1', mode: 'single', clef: 'treble' };
+const CONTEXT: ExerciseContext = { levelId: 'level-1', mode: 'single', clef: 'treble', assisted: false };
 const NOW = new Date('2026-10-28T10:00:00Z');
 
 function student(profileId: string, name: string, notes = 2) {
@@ -79,17 +79,19 @@ describe('parseBackup', () => {
 
   it('rejette les enregistrements d’un schéma plus récent que l’application', () => {
     const alice = student('p1', 'Alice');
-    const future = { ...alice, attempts: alice.attempts.map((a) => ({ ...a, schema: 2 })) };
+    const future = { ...alice, attempts: alice.attempts.map((a) => ({ ...a, schema: 99 })) };
     const parsed = parseBackup(JSON.stringify(createBackup([future as never], NOW)));
     expect(parsed.ok && parsed.students[0].attempts).toEqual([]);
     expect(parsed.ok && parsed.skipped).toBe(2);
   });
 
   it('applique les étapes de mise à niveau aux enregistrements lus', () => {
-    // Une étape qui ne change pas le schéma final est impossible ; on vérifie ici que
-    // parseBackup passe bien chaque enregistrement par les étapes fournies.
+    // Une étape espion (schéma 0 → 1) suivie des vraies étapes : chaque enregistrement doit y passer.
     const seen: string[] = [];
-    const spy: RecordUpgrade[] = [{ toSchema: 1, upgrade: (kind, record) => (seen.push(kind), { ...record }) }];
+    const spy: RecordUpgrade[] = [
+      { toSchema: 1, upgrade: (kind, record) => (seen.push(kind), { ...record }) },
+      ...RECORD_UPGRADES,
+    ];
     const alice = student('p1', 'Alice', 1);
     const old = {
       profile: { ...alice.profile, schema: 0 },
@@ -106,6 +108,23 @@ describe('parseBackup', () => {
     const second = { ...student('p1', 'Alice', 0), attempts: [{ ...first.attempts[0], id: 'autre' }] };
     const parsed = parseBackup(JSON.stringify(createBackup([first, second], NOW)));
     expect(parsed.ok && parsed.students.map((s) => s.attempts.length)).toEqual([2]);
+  });
+});
+
+describe('sauvegardes d’une version antérieure', () => {
+  it('importe une sauvegarde au schéma 1, avant le mode assisté', () => {
+    const alice = student('p1', 'Alice', 2);
+    const strip = <T extends { assisted?: boolean }>({ assisted: _ignored, ...rest }: T) => ({ ...rest, schema: 1 });
+    const v1 = {
+      profile: { ...alice.profile, schema: 1 },
+      sessions: alice.sessions.map(strip),
+      attempts: alice.attempts.map(strip),
+    };
+    const parsed = parseBackup(JSON.stringify(createBackup([v1 as never], NOW)));
+    expect(parsed.ok).toBe(true);
+    if (!parsed.ok) return;
+    expect(parsed.skipped).toBe(0);
+    expect(parsed.students[0].attempts.every((a) => a.assisted === false && a.schema === 2)).toBe(true);
   });
 });
 

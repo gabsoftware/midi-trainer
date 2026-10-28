@@ -20,7 +20,7 @@ import {
   type ExerciseContext,
 } from './records';
 
-const CONTEXT: ExerciseContext = { levelId: 'level-3', mode: 'single', clef: 'treble' };
+const CONTEXT: ExerciseContext = { levelId: 'level-3', mode: 'single', clef: 'treble', assisted: false };
 
 function attempt(expected: number, played: number[], firstResponseMs = 500, timeToCorrectMs = 500): NoteAttempt {
   return {
@@ -181,6 +181,23 @@ describe('IndexedDbHistoryStore', () => {
     await store.putSession(session);
     await store.putAttempt(createAttemptRecord('a1', session, attempt(64, [64]), new Date()));
     expect((await store.load('p1')).attempts.map((a) => a.id)).toEqual(['a1']);
+  });
+});
+
+describe('mise à niveau des données existantes', () => {
+  it('relit les données au schéma 1 (avant le mode assisté) comme non assistées', async () => {
+    const store = openStore(freshDbName());
+    await store.putProfile({ ...createProfileRecord('p1', 'Alice', new Date()), schema: 1 } as never);
+    const { assisted: _s, ...session } = createSessionRecord('s1', 'p1', CONTEXT, new Date());
+    await store.putSession({ ...session, schema: 1 } as never);
+    const { assisted: _a, ...old } = createAttemptRecord('a1', createSessionRecord('s1', 'p1', CONTEXT, new Date()), attempt(64, [64]), new Date());
+    await store.putAttempt({ ...old, schema: 1 } as never);
+
+    expect((await store.loadProfiles()).map((p) => p.schema)).toEqual([2]);
+    const history = await store.load('p1');
+    expect(history.skipped).toBe(0);
+    expect(history.sessions[0]).toMatchObject({ schema: 2, assisted: false });
+    expect(history.attempts[0]).toMatchObject({ schema: 2, assisted: false, expected: 64 });
   });
 });
 

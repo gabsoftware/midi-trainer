@@ -20,8 +20,15 @@ Le cahier des charges complet et le journal des décisions sont dans [docs/cahie
 - **Indicateur des touches enfoncées**, journal de la séance, simulation au clavier d'ordinateur.
 
 - **Choix adaptatif des notes** : les notes ratées reviennent plus souvent, les notes reconnues rapidement moins souvent.
+- **Séances** de 10, 20, 30 ou 50 notes, ou libres. Un bilan s'affiche à la fin : réussite du premier coup, erreurs, notes à revoir et, en mode chronométré, temps médian.
+- **Réglages par élève** :
+  - mode entraînement (aucun temps affiché) ou chronométré (chronomètre en direct) ;
+  - passage automatique à la note suivante et son délai, ou Entrée ;
+  - mode assisté (nom des notes affiché ; ces notes ne comptent ni pour la maîtrise ni pour l'adaptation) ;
+  - octave, simulation au clavier d'ordinateur.
+- **Clavier affiché jouable** à la souris ou au doigt. Les touches noires sont placées comme sur un vrai clavier.
 
-Pas encore implémentés : réglages de séance (nombre de notes, chronomètre…) et fin de séance, statistiques, séquences.
+Pas encore implémentés : statistiques, séquences.
 
 ## Démarrage
 
@@ -45,7 +52,7 @@ Sous WSL2, lancez `npm run dev` dans WSL et ouvrez `http://localhost:5173` dans 
 
 | Touche | Action |
 |---|---|
-| Entrée | Démarrer / recommencer, ou passer au niveau conseillé quand il est proposé |
+| Entrée | Démarrer une séance ; note suivante quand le passage automatique est désactivé ; niveau conseillé quand il est proposé. Une séance en cours n'est jamais relancée par Entrée. |
 | Espace | Pause / reprendre |
 | Échap | Rester sur le niveau maîtrisé (refuser le conseil) |
 

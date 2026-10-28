@@ -37,14 +37,16 @@ export interface LevelProgress {
 }
 
 /**
- * Tentatives qui comptent pour un niveau : même niveau, même type d'exercice,
- * et, si le niveau exige l'octave exacte, seulement celles jouées en octave exacte.
+ * Tentatives qui comptent pour un niveau : même niveau, même type d'exercice, sans
+ * le nom de la note affiché (mode assisté), et, si le niveau exige l'octave exacte,
+ * seulement celles jouées en octave exacte.
  */
 export function attemptsForLevel(level: LevelDefinition, attempts: readonly AttemptRecord[]): AttemptRecord[] {
   return attempts.filter(
     (attempt) =>
       attempt.levelId === level.id &&
       attempt.mode === level.exercise &&
+      !attempt.assisted &&
       (level.defaultOctaveMode === 'any' || attempt.octaveMode === 'exact'),
   );
 }

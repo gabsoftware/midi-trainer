@@ -44,6 +44,31 @@ const fr = {
   keySpace: 'Espace',
   keyEnter: 'Entrée',
 
+  // Réglages de la séance
+  sessionSettings: 'Réglages',
+  notesPerSession: 'Notes par séance',
+  sessionUnlimited: 'libre (sans fin)',
+  trainingMode: 'Mode',
+  modeTraining: 'entraînement (sans chronomètre)',
+  modeTimed: 'chronométré',
+  autoAdvance: 'Passer automatiquement à la note suivante',
+  advanceDelay: 'après',
+  showNoteNames: 'Afficher le nom des notes (mode assisté)',
+  assistedHint: 'En mode assisté, les notes jouées ne comptent pas pour la maîtrise du niveau.',
+  assistedBadge: 'mode assisté',
+
+  // Déroulement et bilan
+  noteProgress: (n: number, total: number) => (total > 0 ? `Note ${n} / ${total}` : `Note ${n}`),
+  nextNote: 'Note suivante',
+  sessionFinished: 'Séance terminée',
+  summaryFirstTry: (count: number, total: number, percent: string) =>
+    `${count} / ${total} du premier coup (${percent})`,
+  summaryErrors: (count: number) => (count === 0 ? 'aucune erreur' : `${count} erreur${count > 1 ? 's' : ''} au total`),
+  summaryMedian: (time: string) => `temps médian de reconnaissance : ${time}`,
+  summaryToReview: 'À revoir :',
+  summaryPerfect: 'Aucune note ratée, bravo !',
+  newSession: 'Nouvelle séance',
+
   // Options
   octave: 'Octave',
   octaveLevel: (mode: string) => `selon le niveau (${mode})`,
@@ -187,6 +212,28 @@ const en: Messages = {
   restart: 'Restart',
   keySpace: 'Space',
   keyEnter: 'Enter',
+
+  sessionSettings: 'Settings',
+  notesPerSession: 'Notes per session',
+  sessionUnlimited: 'free (no end)',
+  trainingMode: 'Mode',
+  modeTraining: 'practice (no timer)',
+  modeTimed: 'timed',
+  autoAdvance: 'Move to the next note automatically',
+  advanceDelay: 'after',
+  showNoteNames: 'Show note names (assisted mode)',
+  assistedHint: 'In assisted mode, notes played do not count towards mastering the level.',
+  assistedBadge: 'assisted mode',
+
+  noteProgress: (n, total) => (total > 0 ? `Note ${n} / ${total}` : `Note ${n}`),
+  nextNote: 'Next note',
+  sessionFinished: 'Session complete',
+  summaryFirstTry: (count, total, percent) => `${count} / ${total} on first try (${percent})`,
+  summaryErrors: (count) => (count === 0 ? 'no errors' : `${count} error${count > 1 ? 's' : ''} in total`),
+  summaryMedian: (time) => `median recognition time: ${time}`,
+  summaryToReview: 'To review:',
+  summaryPerfect: 'No note missed, well done!',
+  newSession: 'New session',
 
   octave: 'Octave',
   octaveLevel: (mode) => `level default (${mode})`,

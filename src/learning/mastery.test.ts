@@ -27,21 +27,31 @@ interface SessionSpec {
   timeMs?: number;
   levelId?: string;
   octaveMode?: 'any' | 'exact';
+  assisted?: boolean;
 }
 
 /** Génère une séance de `count` notes, dont `misses` ratées au premier essai. */
-function session({ day, count, misses = 0, timeMs = 1000, levelId = LEVEL.id, octaveMode = 'any' }: SessionSpec): AttemptRecord[] {
+function session({
+  day,
+  count,
+  misses = 0,
+  timeMs = 1000,
+  levelId = LEVEL.id,
+  octaveMode = 'any',
+  assisted = false,
+}: SessionSpec): AttemptRecord[] {
   const sessionId = `s-${++counter}`;
   return Array.from({ length: count }, (_, index) => {
     const missed = index < misses;
     return {
-      schema: 1,
+      schema: 2,
       id: `a-${++counter}`,
       profileId: 'p1',
       sessionId,
       levelId,
       mode: 'single',
       clef: 'treble',
+      assisted,
       createdAt: `${day}T10:${String(index).padStart(2, '0')}:00.000Z`,
       expected: 64,
       played: missed ? [65, 64] : [64],
@@ -125,6 +135,16 @@ describe('evaluateLevel', () => {
     expect(progress.attemptCount).toBe(40);
     expect(progress.accuracy.current).toBe(1);
     expect(progress.status).toBe('mastered');
+  });
+
+  it('ne compte pas les tentatives en mode assisté', () => {
+    const attempts = [
+      ...session({ day: '2026-10-20', count: 10, assisted: true }),
+      ...session({ day: '2026-10-21', count: 10, assisted: true }),
+    ];
+    const progress = evaluateLevel(LEVEL, attempts);
+    expect(progress.attemptCount).toBe(0);
+    expect(progress.status).toBe('new');
   });
 
   it('ne compte que les tentatives du niveau', () => {

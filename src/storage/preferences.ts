@@ -6,9 +6,38 @@ export interface Preferences {
   /** `level` : octave exigée par le niveau (indifférente au début, exacte avec les lignes supplémentaires). */
   readonly octaveMode: 'level' | OctaveMode;
   readonly computerKeyboard: boolean;
+  /** Notes par séance ; 0 = séance libre, sans fin. */
+  readonly notesPerSession: number;
+  /** Mode chronométré : temps affichés. Sinon, mode entraînement sans pression (temps mesurés mais cachés). */
+  readonly timed: boolean;
+  /** Passage automatique à la note suivante ; sinon, Entrée. */
+  readonly autoAdvance: boolean;
+  readonly advanceDelayMs: number;
+  /** Mode assisté : nom de la note affiché avant la réponse. */
+  readonly showNoteNames: boolean;
 }
 
-export const DEFAULT_PREFERENCES: Preferences = { levelId: null, octaveMode: 'level', computerKeyboard: true };
+export const SESSION_LENGTHS = [10, 20, 30, 50, 0] as const;
+export const ADVANCE_DELAYS_MS = [300, 600, 1000, 1500, 2000] as const;
+
+export const DEFAULT_PREFERENCES: Preferences = {
+  levelId: null,
+  octaveMode: 'level',
+  computerKeyboard: true,
+  notesPerSession: 20,
+  timed: false,
+  autoAdvance: true,
+  advanceDelayMs: 600,
+  showNoteNames: false,
+};
+
+function oneOf<T>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+function booleanOr(value: unknown, fallback: boolean): boolean {
+  return typeof value === 'boolean' ? value : fallback;
+}
 
 /** Réglages propres à chaque élève. */
 function storageKey(profileId: string): string {
@@ -30,8 +59,12 @@ export function parsePreferences(raw: string | null): Preferences {
       value.octaveMode === 'level' || value.octaveMode === 'any' || value.octaveMode === 'exact'
         ? value.octaveMode
         : DEFAULT_PREFERENCES.octaveMode,
-    computerKeyboard:
-      typeof value.computerKeyboard === 'boolean' ? value.computerKeyboard : DEFAULT_PREFERENCES.computerKeyboard,
+    computerKeyboard: booleanOr(value.computerKeyboard, DEFAULT_PREFERENCES.computerKeyboard),
+    notesPerSession: oneOf<number>(value.notesPerSession, SESSION_LENGTHS, DEFAULT_PREFERENCES.notesPerSession),
+    timed: booleanOr(value.timed, DEFAULT_PREFERENCES.timed),
+    autoAdvance: booleanOr(value.autoAdvance, DEFAULT_PREFERENCES.autoAdvance),
+    advanceDelayMs: oneOf<number>(value.advanceDelayMs, ADVANCE_DELAYS_MS, DEFAULT_PREFERENCES.advanceDelayMs),
+    showNoteNames: booleanOr(value.showNoteNames, DEFAULT_PREFERENCES.showNoteNames),
   };
 }
 

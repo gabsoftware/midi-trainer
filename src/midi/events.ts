@@ -1,5 +1,5 @@
-/** Origine d'un événement de note : vrai clavier MIDI ou simulation au clavier d'ordinateur. */
-export type NoteSource = 'midi' | 'computer-keyboard';
+/** Origine d'un événement de note : vrai clavier MIDI, clavier d'ordinateur, ou clavier affiché (souris, doigt). */
+export type NoteSource = 'midi' | 'computer-keyboard' | 'on-screen';
 
 export interface NoteEvent {
   readonly type: 'noteon' | 'noteoff';

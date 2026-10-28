@@ -3,10 +3,13 @@ import { isValidMidiNote } from '../music/pitch';
 import type { OctaveMode } from '../music/validation';
 
 /**
- * Enregistrements persistés. Le champ `schema` servira aux migrations après
- * publication ; d'ici là, un changement de format recrée la base vide.
+ * Enregistrements persistés. Le champ `schema` permet de mettre à niveau les
+ * données d'un ancien format (voir upgrades.ts).
+ *
+ * - Schéma 1 : format de la première publication.
+ * - Schéma 2 : séances et tentatives portent `assisted` (nom de la note affiché).
  */
-export const RECORD_SCHEMA = 1;
+export const RECORD_SCHEMA = 2;
 
 /** Élève. Aucune authentification : un simple profil local. */
 export interface ProfileRecord {
@@ -35,6 +38,11 @@ export interface ExerciseContext {
   readonly levelId: string;
   readonly mode: ExerciseMode;
   readonly clef: ClefName;
+  /**
+   * Mode assisté : le nom de la note était affiché avant la réponse. Ces tentatives ne
+   * mesurent pas la lecture : elles ne comptent ni pour la maîtrise ni pour l'adaptation.
+   */
+  readonly assisted: boolean;
 }
 
 export interface SessionRecord extends ExerciseContext {
@@ -95,6 +103,7 @@ export function createAttemptRecord(
     levelId: session.levelId,
     mode: session.mode,
     clef: session.clef,
+    assisted: session.assisted,
     createdAt: now.toISOString(),
     expected: attempt.expected,
     played: [...attempt.played],
@@ -130,7 +139,8 @@ function hasContext(value: Unknown): boolean {
   return (
     isNonEmptyString(value.levelId) &&
     (value.mode === 'single' || value.mode === 'sequence') &&
-    (value.clef === 'treble' || value.clef === 'bass' || value.clef === 'grand')
+    (value.clef === 'treble' || value.clef === 'bass' || value.clef === 'grand') &&
+    typeof value.assisted === 'boolean'
   );
 }
 

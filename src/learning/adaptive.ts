@@ -30,7 +30,9 @@ export const DEFAULT_ADAPTIVE_PARAMS: AdaptiveParams = {
   maxWeight: 4,
 };
 
-type AttemptSummary = Pick<AttemptRecord, 'expected' | 'firstTryCorrect' | 'firstResponseMs'>;
+type AttemptSummary = Pick<AttemptRecord, 'expected' | 'firstTryCorrect' | 'firstResponseMs'> & {
+  readonly assisted?: boolean;
+};
 
 /**
  * Poids de chaque note de `notes`, d'après `history` (tentatives triées par date croissante).
@@ -44,7 +46,8 @@ export function noteWeights(
 ): Map<number, number> {
   const byNote = new Map<number, AttemptSummary[]>(notes.map((note) => [note, []]));
   for (const attempt of history) {
-    byNote.get(attempt.expected)?.push(attempt);
+    // Nom de la note affiché : la réponse ne dit rien de la lecture.
+    if (!attempt.assisted) byNote.get(attempt.expected)?.push(attempt);
   }
   const weights = new Map<number, number>();
   for (const [note, attempts] of byNote) {

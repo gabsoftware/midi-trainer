@@ -56,6 +56,12 @@ describe('noteWeights', () => {
     expect(weights.get(G4)).toBe(DEFAULT_ADAPTIVE_PARAMS.minWeight);
   });
 
+  it('ignore les tentatives en mode assisté', () => {
+    expect(noteWeights(NOTES, [{ ...attempt(E4, false), assisted: true }], FAST_MS).get(E4)).toBe(
+      DEFAULT_ADAPTIVE_PARAMS.unseenWeight,
+    );
+  });
+
   it('ignore les tentatives sur des notes hors du niveau', () => {
     const weights = noteWeights(NOTES, [attempt(60, false)], FAST_MS);
     expect([...weights.keys()]).toEqual(NOTES);
