@@ -186,3 +186,11 @@ scripts/sampling/
   make_sampling_midi.py   fichier MIDI à faire jouer par un piano, enregistré en un seul .wav
   slice_samples.py        vérifie le .wav (--report), puis le découpe en une note par fichier (fondus, encodage Opus)
 ```
+
+## Licence
+
+Copyright © 2026 Gabriel Hautclocq.
+
+Ce programme est un logiciel libre : vous pouvez le redistribuer et le modifier selon les termes de la **GNU General Public License**, publiée par la Free Software Foundation, version 3 ou (à votre choix) toute version ultérieure. Il est distribué dans l'espoir qu'il sera utile, mais **sans aucune garantie**, pas même la garantie implicite de qualité marchande ou d'adéquation à un usage particulier. Texte complet : [LICENSE](LICENSE).
+
+Composants tiers, sous leur propre licence : React et VexFlow (MIT) ; les polices musicales Bravura et Academico, embarquées par VexFlow (SIL Open Font License 1.1). Les sons de piano ne sont pas fournis (voir [Sons de piano](#sons-de-piano)) : ceux que vous produisez relèvent de la licence de l'instrument utilisé.
