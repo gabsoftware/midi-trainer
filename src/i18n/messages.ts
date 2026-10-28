@@ -1,4 +1,5 @@
 import type { LevelClef } from '../learning/levels';
+import type { BackupError } from '../storage/backup';
 import type { Locale } from './locale';
 
 /**
@@ -105,6 +106,25 @@ const fr = {
   welcomeHint: 'Chaque élève retrouve sa propre progression. Vous pourrez en ajouter d’autres plus tard.',
   continue: 'Continuer',
   later: 'Plus tard',
+
+  // Sauvegarde
+  backupTitle: 'Sauvegarde',
+  backupHint:
+    'La progression est enregistrée uniquement dans ce navigateur. Exportez-la régulièrement pour ne pas la perdre, ou pour la transférer sur un autre ordinateur.',
+  exportStudent: 'Exporter',
+  exportAll: 'Exporter tous les élèves',
+  importBackup: 'Importer une sauvegarde',
+  importDone: (students: number, notes: number) =>
+    `Sauvegarde importée : ${students} élève${students > 1 ? 's' : ''}, ${notes} note${notes > 1 ? 's' : ''}.`,
+  importError: {
+    'too-large': 'Ce fichier est trop volumineux pour être une sauvegarde.',
+    'not-json': 'Ce fichier n’est pas une sauvegarde valide.',
+    'not-backup': 'Ce fichier n’est pas une sauvegarde de cette application.',
+    'newer-version': 'Cette sauvegarde vient d’une version plus récente de l’application. Mettez la page à jour puis réessayez.',
+    empty: 'Cette sauvegarde ne contient aucun élève lisible.',
+  } satisfies Record<BackupError, string>,
+  importFailed: (detail: string) => `L’import a échoué (${detail}).`,
+  exportFailed: (detail: string) => `L’export a échoué (${detail}).`,
 
   // MIDI
   midiUnsupported: 'Web MIDI non disponible (utilisez Chrome ou Edge)',
@@ -219,6 +239,24 @@ const en: Messages = {
   welcomeHint: 'Each student keeps their own progress. You can add more students later.',
   continue: 'Continue',
   later: 'Later',
+
+  backupTitle: 'Backup',
+  backupHint:
+    'Progress is stored in this browser only. Export it regularly so it is not lost, or to move it to another computer.',
+  exportStudent: 'Export',
+  exportAll: 'Export all students',
+  importBackup: 'Import a backup',
+  importDone: (students, notes) =>
+    `Backup imported: ${students} student${students > 1 ? 's' : ''}, ${notes} note${notes > 1 ? 's' : ''}.`,
+  importError: {
+    'too-large': 'This file is too large to be a backup.',
+    'not-json': 'This file is not a valid backup.',
+    'not-backup': 'This file is not a backup from this application.',
+    'newer-version': 'This backup comes from a newer version of the application. Reload the page and try again.',
+    empty: 'This backup contains no readable student.',
+  },
+  importFailed: (detail) => `Import failed (${detail}).`,
+  exportFailed: (detail) => `Export failed (${detail}).`,
 
   midiUnsupported: 'Web MIDI unavailable (use Chrome or Edge)',
   midiDenied: 'MIDI access denied',

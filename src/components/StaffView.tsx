@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import VexFlow, { Accidental, Formatter, Renderer, Stave, StaveConnector, StaveNote, Voice } from 'vexflow/bravura';
+import { Accidental, Formatter, Renderer, Stave, StaveConnector, StaveNote, Voice } from 'vexflow/bravura';
 import { useI18n } from '../i18n/context';
 import { staffForNote, type LevelClef } from '../learning/levels';
 import { midiToPitch, toVexflowKey } from '../music/pitch';
@@ -22,7 +22,12 @@ const LAYOUT = {
 } as const;
 const MAX_SCALE = 2.4;
 
-const fontsReady = VexFlow.loadFonts('Bravura', 'Academico');
+/**
+ * L'entrée `vexflow/bravura` enregistre les polices Bravura et Academico, embarquées dans le bundle.
+ * On attend seulement qu'elles soient prêtes. Ne pas utiliser `VexFlow.loadFonts(nom)` : sans
+ * données, il télécharge les polices depuis un CDN externe (requête réseau vers un tiers).
+ */
+const fontsReady = Promise.all([document.fonts.load('30px Bravura'), document.fonts.load('12px Academico')]);
 
 export function StaffView({ midi, clef, noteColor = '#111' }: StaffViewProps) {
   const { t } = useI18n();

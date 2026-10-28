@@ -2,7 +2,15 @@ import 'fake-indexeddb/auto';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { NoteAttempt } from '../exercises/singleNote';
 import { HistoryService } from './HistoryService';
-import { IndexedDbHistoryStore, MemoryHistoryStore, type HistoryStore, type StoredHistory } from './historyStore';
+import { parseBackup } from './backup';
+import {
+  BASELINE_DB_VERSION,
+  IndexedDbHistoryStore,
+  MemoryHistoryStore,
+  type DbMigration,
+  type HistoryStore,
+  type StoredHistory,
+} from './historyStore';
 import {
   createAttemptRecord,
   createProfileRecord,
@@ -42,8 +50,8 @@ const openStores: IndexedDbHistoryStore[] = [];
 function freshDbName(): string {
   return `test-db-${++dbCounter}`;
 }
-function openStore(name: string): IndexedDbHistoryStore {
-  const store = new IndexedDbHistoryStore(indexedDB, name);
+function openStore(name: string, migrations?: readonly DbMigration[]): IndexedDbHistoryStore {
+  const store = new IndexedDbHistoryStore(indexedDB, name, migrations);
   openStores.push(store);
   return store;
 }
@@ -176,6 +184,116 @@ describe('IndexedDbHistoryStore', () => {
   });
 });
 
+describe('migrations de la base', () => {
+  async function seed(name: string) {
+    const store = openStore(name);
+    await store.putProfile(createProfileRecord('p1', 'Alice', new Date()));
+    const session = createSessionRecord('s1', 'p1', CONTEXT, new Date());
+    await store.putSession(session);
+    await store.putAttempt(createAttemptRecord('a1', session, attempt(64, [64]), new Date()));
+    store.close();
+  }
+
+  it('applique les migrations sans perdre les données', async () => {
+    const name = freshDbName();
+    await seed(name);
+    // Migration d'exemple : nouvel index sur la note attendue.
+    const addIndex: DbMigration = (_db, transaction) => transaction.objectStore('attempts').createIndex('byExpected', 'expected');
+    const store = openStore(name, [addIndex]);
+    expect((await store.load('p1')).attempts.map((a) => a.id)).toEqual(['a1']);
+    expect((await store.loadProfiles()).map((p) => p.name)).toEqual(['Alice']);
+    store.close();
+
+    const db = await new Promise<IDBDatabase>((resolve, reject) => {
+      const request = indexedDB.open(name);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    expect(db.version).toBe(BASELINE_DB_VERSION + 1);
+    expect(Array.from(db.transaction('attempts').objectStore('attempts').indexNames)).toContain('byExpected');
+    db.close();
+  });
+
+  it('laisse la base intacte si une migration échoue', async () => {
+    const name = freshDbName();
+    await seed(name);
+    const failing: DbMigration = () => {
+      throw new Error('migration ratée');
+    };
+    await expect(openStore(name, [failing]).load('p1')).rejects.toBeTruthy();
+    // L'application précédente relit toujours ses données.
+    expect((await openStore(name).load('p1')).attempts.map((a) => a.id)).toEqual(['a1']);
+  });
+});
+
+describe('import de sauvegarde', () => {
+  async function aliceStore() {
+    const store = new MemoryHistoryStore();
+    const service = new HistoryService(store, sequentialIds('alice'), steppingClock());
+    await service.load();
+    service.renameProfile(service.getSnapshot().profileId!, 'Alice');
+    const session = service.startSession(CONTEXT);
+    service.recordAttempt(session.id, attempt(64, [64]));
+    service.recordAttempt(session.id, attempt(67, [65, 67]));
+    await service.flush();
+    return service;
+  }
+
+  it('transfère la progression vers un autre ordinateur', async () => {
+    const source = await aliceStore();
+    const file = JSON.stringify(await source.exportBackup());
+
+    const target = new HistoryService(openStore(freshDbName()), sequentialIds('cible'), steppingClock());
+    await target.load();
+    const parsed = parseBackup(file);
+    if (!parsed.ok) throw new Error(parsed.error);
+    await target.importBackup(parsed.students);
+
+    const alice = target.getSnapshot().profiles.find((p) => p.name === 'Alice')!;
+    await target.selectProfile(alice.id);
+    expect(target.getSnapshot().attempts.map((a) => [a.expected, a.played])).toEqual([
+      [64, [64]],
+      [67, [65, 67]],
+    ]);
+    expect(target.getSnapshot().sessions[0].attemptCount).toBe(2);
+  });
+
+  it('réimporter le même fichier ne crée pas de doublon', async () => {
+    const service = await aliceStore();
+    const parsed = parseBackup(JSON.stringify(await service.exportBackup()));
+    if (!parsed.ok) throw new Error(parsed.error);
+    await service.importBackup(parsed.students);
+    await service.importBackup(parsed.students);
+    expect(service.getSnapshot().profiles).toHaveLength(1);
+    expect(service.getSnapshot().attempts).toHaveLength(2);
+    expect(service.getSnapshot().sessions).toHaveLength(1);
+  });
+
+  it('fusionne sans écraser une progression plus récente ni le nom local', async () => {
+    const service = await aliceStore();
+    const parsed = parseBackup(JSON.stringify(await service.exportBackup()));
+    if (!parsed.ok) throw new Error(parsed.error);
+    const profileId = service.getSnapshot().profileId!;
+    // Après l'export : l'élève est renommé et continue sa séance.
+    service.renameProfile(profileId, 'Alice M.');
+    service.recordAttempt(service.getSnapshot().sessions[0].id, attempt(71, [71]));
+    await service.importBackup(parsed.students);
+
+    const snapshot = service.getSnapshot();
+    expect(snapshot.profiles.map((p) => p.name)).toEqual(['Alice M.']);
+    expect(snapshot.attempts).toHaveLength(3);
+    expect(snapshot.sessions[0].attemptCount).toBe(3);
+  });
+
+  it('exporte un seul élève sur demande', async () => {
+    const service = await aliceStore();
+    const bob = service.createProfile('Bob');
+    const backup = await service.exportBackup([bob.id]);
+    expect(backup.students.map((s) => s.profile.name)).toEqual(['Bob']);
+    expect(backup.students[0].attempts).toHaveLength(0);
+  });
+});
+
 describe('HistoryService', () => {
   it('crée un premier élève sans nom au premier lancement', async () => {
     const service = new HistoryService(new MemoryHistoryStore(), sequentialIds());
@@ -282,6 +400,7 @@ describe('HistoryService', () => {
       putSession: () => Promise.reject(new Error('quota dépassé')),
       putAttempt: () => Promise.reject(new Error('quota dépassé')),
       clear: () => Promise.resolve(),
+      importStudent: () => Promise.resolve(),
     };
     const service = new HistoryService(failing);
     await service.load();

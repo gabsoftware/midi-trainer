@@ -6,6 +6,8 @@ import {
   type ProfileRecord,
   type SessionRecord,
 } from './records';
+import type { StudentData } from './backup';
+import { upgradeRecord } from './upgrades';
 
 export interface StoredHistory {
   /** Tentatives triées par date croissante. */
@@ -28,11 +30,24 @@ export interface HistoryStore {
   putAttempt(attempt: AttemptRecord): Promise<void>;
   /** Efface l'historique d'un élève, sans supprimer l'élève. */
   clear(profileId: string): Promise<void>;
+  /**
+   * Fusionne les données d'un élève (import de sauvegarde), en une seule transaction.
+   * Ne supprime rien : un élève déjà présent garde son nom ; une séance déjà présente
+   * n'est remplacée que par une version plus récente ; les tentatives, immuables,
+   * sont ajoutées si elles manquent. Réimporter le même fichier ne change donc rien.
+   */
+  importStudent(data: StudentData): Promise<void>;
 }
 
+/** Une séance remplace celle de même identifiant seulement si elle est plus récente. */
+export function shouldReplaceSession(existing: SessionRecord | undefined, incoming: SessionRecord): boolean {
+  return !existing || incoming.lastActivityAt > existing.lastActivityAt;
+}
+
+/** Met à niveau les enregistrements d'anciens schémas, puis écarte ceux qui sont invalides. */
 function sortHistory(attempts: unknown[], sessions: unknown[]): StoredHistory {
-  const validAttempts = attempts.filter(isAttemptRecord);
-  const validSessions = sessions.filter(isSessionRecord);
+  const validAttempts = attempts.map((value) => upgradeRecord('attempt', value)).filter(isAttemptRecord);
+  const validSessions = sessions.map((value) => upgradeRecord('session', value)).filter(isSessionRecord);
   return {
     attempts: validAttempts.sort((a, b) => a.createdAt.localeCompare(b.createdAt)),
     sessions: validSessions.sort((a, b) => a.startedAt.localeCompare(b.startedAt)),
@@ -41,24 +56,49 @@ function sortHistory(attempts: unknown[], sessions: unknown[]): StoredHistory {
 }
 
 function sortProfiles(profiles: unknown[]): ProfileRecord[] {
-  return profiles.filter(isProfileRecord).sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+  return profiles
+    .map((value) => upgradeRecord('profile', value))
+    .filter(isProfileRecord)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
 // --- IndexedDB ---
 
 const DB_NAME = 'midi-trainer';
-/**
- * Version du format de la base.
- *
- * Avant publication, il n'y a pas de migration : quand le format change, on
- * incrémente la version et la base est recréée vide (voir le journal des
- * décisions du cahier des charges). Les migrations commenceront après publication.
- */
-const DB_VERSION = 2;
 const ATTEMPTS = 'attempts';
 const SESSIONS = 'sessions';
 const PROFILES = 'profiles';
 const BY_PROFILE = 'byProfile';
+
+/**
+ * Structure de la base à la première publication (version `BASELINE_DB_VERSION`).
+ * Une base plus ancienne vient du développement : elle est recréée vide.
+ */
+export const BASELINE_DB_VERSION = 2;
+
+function createBaseline(db: IDBDatabase): void {
+  for (const storeName of Array.from(db.objectStoreNames)) {
+    db.deleteObjectStore(storeName);
+  }
+  db.createObjectStore(PROFILES, { keyPath: 'id' });
+  const attempts = db.createObjectStore(ATTEMPTS, { keyPath: 'id' });
+  attempts.createIndex(BY_PROFILE, 'profileId');
+  attempts.createIndex('bySession', 'sessionId');
+  db.createObjectStore(SESSIONS, { keyPath: 'id' }).createIndex(BY_PROFILE, 'profileId');
+}
+
+/**
+ * Migration de structure : passe la base de la version `index + BASELINE_DB_VERSION`
+ * à la suivante, dans la transaction de mise à niveau. Si elle échoue, la transaction
+ * est annulée et la base reste intacte dans son ancienne version.
+ */
+export type DbMigration = (db: IDBDatabase, transaction: IDBTransaction) => void;
+
+/**
+ * Migrations de structure (magasins, index), dans l'ordre. Pour un changement de
+ * format des enregistrements eux-mêmes, voir `RECORD_UPGRADES` (upgrades.ts).
+ */
+export const DB_MIGRATIONS: readonly DbMigration[] = [];
 
 function promisify<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -75,20 +115,18 @@ function transactionDone(transaction: IDBTransaction): Promise<void> {
   });
 }
 
-function openDatabase(factory: IDBFactory, name: string): Promise<IDBDatabase> {
+function openDatabase(factory: IDBFactory, name: string, migrations: readonly DbMigration[]): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
-    const request = factory.open(name, DB_VERSION);
-    request.onupgradeneeded = () => {
+    const request = factory.open(name, BASELINE_DB_VERSION + migrations.length);
+    request.onupgradeneeded = (event) => {
       const db = request.result;
-      // Pas de migration avant publication : on repart d'une base vide.
-      for (const storeName of Array.from(db.objectStoreNames)) {
-        db.deleteObjectStore(storeName);
+      const transaction = request.transaction!;
+      if (event.oldVersion < BASELINE_DB_VERSION) {
+        createBaseline(db);
       }
-      db.createObjectStore(PROFILES, { keyPath: 'id' });
-      const attempts = db.createObjectStore(ATTEMPTS, { keyPath: 'id' });
-      attempts.createIndex(BY_PROFILE, 'profileId');
-      attempts.createIndex('bySession', 'sessionId');
-      db.createObjectStore(SESSIONS, { keyPath: 'id' }).createIndex(BY_PROFILE, 'profileId');
+      for (let version = Math.max(event.oldVersion, BASELINE_DB_VERSION); version < db.version; version++) {
+        migrations[version - BASELINE_DB_VERSION](db, transaction);
+      }
     };
     request.onsuccess = () => {
       const db = request.result;
@@ -117,13 +155,16 @@ export class IndexedDbHistoryStore implements HistoryStore {
   private readonly factory: IDBFactory;
   private readonly name: string;
 
-  constructor(factory: IDBFactory, name = DB_NAME) {
+  private readonly migrations: readonly DbMigration[];
+
+  constructor(factory: IDBFactory, name = DB_NAME, migrations: readonly DbMigration[] = DB_MIGRATIONS) {
     this.factory = factory;
     this.name = name;
+    this.migrations = migrations;
   }
 
   private db(): Promise<IDBDatabase> {
-    this.dbPromise ??= openDatabase(this.factory, this.name).catch((error: unknown) => {
+    this.dbPromise ??= openDatabase(this.factory, this.name, this.migrations).catch((error: unknown) => {
       this.dbPromise = null; // nouvel essai au prochain appel
       throw error;
     });
@@ -171,6 +212,27 @@ export class IndexedDbHistoryStore implements HistoryStore {
     return this.write([ATTEMPTS, SESSIONS], (transaction) => {
       deleteByProfile(transaction, ATTEMPTS, profileId);
       deleteByProfile(transaction, SESSIONS, profileId);
+    });
+  }
+
+  importStudent({ profile, sessions, attempts }: StudentData): Promise<void> {
+    return this.write([PROFILES, SESSIONS, ATTEMPTS], (transaction) => {
+      const profiles = transaction.objectStore(PROFILES);
+      const profileRequest = profiles.get(profile.id);
+      profileRequest.onsuccess = () => {
+        if (profileRequest.result === undefined) profiles.put(profile);
+      };
+      const sessionStore = transaction.objectStore(SESSIONS);
+      for (const session of sessions) {
+        const request = sessionStore.get(session.id);
+        request.onsuccess = () => {
+          if (shouldReplaceSession(request.result as SessionRecord | undefined, session)) sessionStore.put(session);
+        };
+      }
+      const attemptStore = transaction.objectStore(ATTEMPTS);
+      for (const attempt of attempts) {
+        attemptStore.put(attempt);
+      }
     });
   }
 
@@ -222,6 +284,15 @@ export class MemoryHistoryStore implements HistoryStore {
 
   putAttempt(attempt: AttemptRecord): Promise<void> {
     this.attempts.set(attempt.id, attempt);
+    return Promise.resolve();
+  }
+
+  importStudent({ profile, sessions, attempts }: StudentData): Promise<void> {
+    if (!this.profiles.has(profile.id)) this.profiles.set(profile.id, profile);
+    for (const session of sessions) {
+      if (shouldReplaceSession(this.sessions.get(session.id), session)) this.sessions.set(session.id, session);
+    }
+    for (const attempt of attempts) this.attempts.set(attempt.id, attempt);
     return Promise.resolve();
   }
 

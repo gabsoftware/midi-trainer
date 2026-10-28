@@ -66,6 +66,12 @@ kbd {
   color: var(--muted);
 }
 
+button.primary kbd {
+  color: #fff;
+  border-color: rgb(255 255 255 / 0.6);
+  background: rgb(255 255 255 / 0.15);
+}
+
 .app {
   max-width: 1140px;
   margin: 0 auto;
@@ -277,6 +283,32 @@ input {
 
 .back {
   align-self: center;
+}
+
+.backup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.backup h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.backup .hint,
+.backup-message {
+  margin: 0;
+}
+
+.backup-message.ok {
+  color: var(--ok);
+}
+
+.backup-message.error {
+  color: var(--ko);
 }
 
 .welcome {

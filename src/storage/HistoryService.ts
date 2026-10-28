@@ -1,4 +1,5 @@
 import type { NoteAttempt } from '../exercises/singleNote';
+import { createBackup, type Backup, type StudentData } from './backup';
 import type { HistoryStore } from './historyStore';
 import {
   createAttemptRecord,
@@ -221,6 +222,48 @@ export class HistoryService {
       await store.putSession(updatedSession);
     });
     return record;
+  }
+
+  /**
+   * Sauvegarde de la progression des élèves demandés (tous par défaut).
+   * Attend la fin des écritures en cours, pour que la sauvegarde soit complète.
+   */
+  async exportBackup(profileIds?: readonly string[]): Promise<Backup> {
+    await this.flush();
+    const wanted = this.snapshot.profiles.filter((profile) => !profileIds || profileIds.includes(profile.id));
+    const students: StudentData[] = [];
+    for (const profile of wanted) {
+      if (this.store) {
+        const { sessions, attempts } = await this.store.load(profile.id);
+        students.push({ profile, sessions, attempts });
+      } else if (profile.id === this.snapshot.profileId) {
+        // Sans stockage, seul l'élève courant a des données (en mémoire).
+        students.push({ profile, sessions: this.snapshot.sessions, attempts: this.snapshot.attempts });
+      } else {
+        students.push({ profile, sessions: [], attempts: [] });
+      }
+    }
+    return createBackup(students, this.clock());
+  }
+
+  /**
+   * Importe une sauvegarde déjà validée (voir `parseBackup`), par fusion : rien n'est
+   * supprimé et réimporter le même fichier ne crée pas de doublon. Recharge ensuite la liste
+   * des élèves et l'historique de l'élève courant.
+   */
+  async importBackup(students: readonly StudentData[]): Promise<void> {
+    const store = this.store;
+    if (!store) {
+      throw new Error('Local storage unavailable.');
+    }
+    await this.flush();
+    for (const student of students) {
+      await store.importStudent(student);
+    }
+    const profiles = await store.loadProfiles();
+    this.update({ profiles });
+    const current = this.snapshot.profileId;
+    await this.selectProfile(current && profiles.some((p) => p.id === current) ? current : profiles[0].id);
   }
 
   /** Efface l'historique de l'élève courant. */

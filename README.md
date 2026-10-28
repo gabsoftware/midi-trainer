@@ -15,6 +15,7 @@ Le cahier des charges complet et le journal des décisions sont dans [docs/cahie
 - **Temps mesurés** : temps de première réponse et temps jusqu'à la bonne réponse, sur une horloge monotone, pauses exclues.
 - **Pause automatique** si le clavier MIDI est débranché ou si l'onglet est masqué.
 - **Historique local** (IndexedDB), conservé après rechargement, séparé par élève.
+- **Sauvegarde** : export de la progression d'un élève ou de tous dans un fichier JSON, et import par fusion (réimporter le même fichier ne crée pas de doublon). Les boutons sont sur l'écran des élèves (bouton de l'élève dans l'en-tête).
 - **Interface bilingue** français / anglais. Les noms de notes suivent la langue (Do Ré Mi / C D E).
 - **Indicateur des touches enfoncées**, journal de la séance, simulation au clavier d'ordinateur.
 
@@ -68,12 +69,23 @@ Sous WSL2, lancez `npm run dev` dans WSL et ouvrez `http://localhost:5173` dans 
 
   Une séance ratée remet la régularité à zéro. Si un niveau exige l'octave exacte, les notes jouées en octave libre ne comptent pas. Les niveaux ne sont pas verrouillés : le cahier des charges demande un choix manuel, donc l'application conseille au lieu d'imposer.
 - **Élèves** : profils locaux, sans authentification (pas de backend). Chaque séance et chaque tentative porte l'identifiant de l'élève, et la base indexe par élève. Supprimer un élève efface son historique dans la même transaction. Les réglages sont rangés par élève dans `localStorage`. La langue et le clavier MIDI sont communs à l'appareil.
-- **Pas de migration avant publication** : quand le format de la base change, sa version est incrémentée et elle est recréée vide.
+- **Évolution des données** : voir la section « Faire évoluer le format des données ».
 - **Historique en IndexedDB**, sans bibliothèque intermédiaire. Les données sont disponibles immédiatement en mémoire et écrites en arrière-plan, dans l'ordre des appels. Une écriture n'est considérée comme faite qu'une fois la transaction validée. Si le stockage échoue ou est indisponible, l'application continue en mémoire et affiche l'erreur. Les enregistrements portent un numéro de schéma et sont validés à la relecture : un enregistrement corrompu est ignoré et signalé, sans bloquer le reste. Une séance n'est créée qu'à la première note réussie, ce qui évite les séances vides.
 - **Internationalisation sans dépendance** (`i18n/`). Un dictionnaire par langue, typé : le dictionnaire anglais a le type du français, donc une clé ou un paramètre manquant ne compile pas. Les textes paramétrés sont des fonctions, ce qui gère le pluriel. Les données de configuration (titres des niveaux) portent leurs textes dans les deux langues. Les modules non graphiques (MIDI, historique) renvoient des codes d'erreur, traduits par l'interface. La langue par défaut est celle du navigateur, le français à défaut ; le choix est mémorisé.
 - **Simulation clavier** par le même type d'événement (`NoteEvent`) que le vrai MIDI : le reste de l'application ne fait pas la différence.
 - **VexFlow 5** (entrée `vexflow/bravura`, police Bravura uniquement). Le rendu attend le chargement de la police et s'adapte à la largeur disponible. Le grand système relie les deux portées par une accolade, et la note s'affiche en clé de sol à partir du do central.
 - **Dépendances** limitées à React et VexFlow, plus Vitest et `fake-indexeddb` (IndexedDB en mémoire pour les tests) en développement. Toutes sont des versions publiées depuis au moins 15 jours.
+
+## Faire évoluer le format des données
+
+La progression des élèves ne doit jamais être perdue lors d'une mise à jour. Deux mécanismes, selon le type de changement :
+
+- **Format d'un enregistrement** (champ ajouté, renommé…) : incrémenter `RECORD_SCHEMA` dans [src/storage/records.ts](src/storage/records.ts), puis ajouter une étape dans `RECORD_UPGRADES` ([src/storage/upgrades.ts](src/storage/upgrades.ts)). Les étapes s'appliquent à la lecture de la base *et* à l'import d'une sauvegarde : les anciennes données et les anciens fichiers de sauvegarde restent lisibles.
+- **Structure de la base** (magasin, index) : ajouter une fonction à la fin de `DB_MIGRATIONS` ([src/storage/historyStore.ts](src/storage/historyStore.ts)). La version de la base augmente d'autant. Les migrations s'exécutent dans la transaction de mise à niveau : si l'une échoue, la base reste intacte dans son ancienne version.
+
+Ne jamais modifier une étape ou une migration déjà publiée : en ajouter une nouvelle. La version 2 de la base (`BASELINE_DB_VERSION`) est la référence de la première publication. Une base plus ancienne vient du développement et est recréée vide. Les tests couvrent la mise à niveau, une migration qui échoue, l'import de fichiers invalides ou plus récents que l'application, et l'aller-retour d'une sauvegarde d'un ordinateur à l'autre.
+
+Le build de production (`dist/`) ne contient ni les tests ni les dépendances de développement.
 
 ## Architecture
 
@@ -86,7 +98,8 @@ src/
   learning/    levels.ts (parcours en 10 niveaux), mastery.ts (critères de maîtrise, niveau conseillé)
   statistics/  basic.ts (médiane, moyenne)
   storage/     records.ts (format et validation des enregistrements), historyStore.ts (IndexedDB / mémoire),
-               HistoryService.ts (élèves, cache, file d'écriture, erreurs), preferences.ts (réglages par élève)
+               HistoryService.ts (élèves, cache, file d'écriture, erreurs), preferences.ts (réglages par élève),
+               backup.ts (sauvegarde JSON), upgrades.ts (mise à niveau des enregistrements)
   i18n/        locale.ts, messages.ts (dictionnaires fr / en), context.ts, I18nProvider.tsx
   hooks/       useMidi.ts, useHistory.ts, useKeyLabels.ts (ponts entre les services et React)
   components/  Trainer, LevelPicker, ProfilePicker, StaffView (VexFlow), MidiStatus, PianoKeys

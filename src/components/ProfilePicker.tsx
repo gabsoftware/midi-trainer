@@ -1,9 +1,15 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type ChangeEvent, type FormEvent } from 'react';
 import { historyService } from '../hooks/useHistory';
 import { useI18n } from '../i18n/context';
+import { backupFileName, MAX_BACKUP_BYTES, parseBackup } from '../storage/backup';
 import { deletePreferences } from '../storage/preferences';
 import { MAX_PROFILE_NAME_LENGTH, type ProfileRecord } from '../storage/records';
+import { downloadJson } from './download';
 import { profileName } from './profileName';
+
+function describe(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 interface ProfilePickerProps {
   readonly profiles: readonly ProfileRecord[];
@@ -16,11 +22,50 @@ interface ProfilePickerProps {
 
 type Editing = { readonly mode: 'rename'; readonly id: string; readonly name: string } | { readonly mode: 'delete'; readonly id: string };
 
-/** Écran « Qui joue ? » : choisir, créer, renommer ou supprimer un élève. Utilisable entièrement au clavier. */
+/**
+ * Écran « Qui joue ? » : choisir, créer, renommer, supprimer, sauvegarder et restaurer
+ * les élèves. Utilisable entièrement au clavier.
+ */
 export function ProfilePicker({ profiles, currentId, onChoose, onCancel }: ProfilePickerProps) {
   const { t } = useI18n();
   const [newName, setNewName] = useState('');
   const [editing, setEditing] = useState<Editing | null>(null);
+  const [message, setMessage] = useState<{ readonly tone: 'ok' | 'error'; readonly text: string } | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+
+  const exportBackup = async (profile: ProfileRecord | null) => {
+    try {
+      const backup = await historyService.exportBackup(profile ? [profile.id] : undefined);
+      const name = profile ? profileName(profile, profiles, t) : null;
+      downloadJson(backupFileName(name, new Date()), backup);
+      setMessage(null);
+    } catch (error) {
+      setMessage({ tone: 'error', text: t.exportFailed(describe(error)) });
+    }
+  };
+
+  const importBackup = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = ''; // permet de réimporter le même fichier
+    if (!file) return;
+    if (file.size > MAX_BACKUP_BYTES) {
+      setMessage({ tone: 'error', text: t.importError['too-large'] });
+      return;
+    }
+    try {
+      const parsed = parseBackup(await file.text());
+      if (!parsed.ok) {
+        setMessage({ tone: 'error', text: t.importError[parsed.error] });
+        return;
+      }
+      await historyService.importBackup(parsed.students);
+      const notes = parsed.students.reduce((sum, student) => sum + student.attempts.length, 0);
+      const done = t.importDone(parsed.students.length, notes);
+      setMessage({ tone: 'ok', text: parsed.skipped > 0 ? `${done} ${t.historySkipped(parsed.skipped)}` : done });
+    } catch (error) {
+      setMessage({ tone: 'error', text: t.importFailed(describe(error)) });
+    }
+  };
 
   const addStudent = (event: FormEvent) => {
     event.preventDefault();
@@ -97,6 +142,9 @@ export function ProfilePicker({ profiles, currentId, onChoose, onCancel }: Profi
               <button type="button" className="subtle" onClick={() => setEditing({ mode: 'rename', id: profile.id, name: profile.name })}>
                 {t.rename}
               </button>
+              <button type="button" className="subtle" onClick={() => void exportBackup(profile)}>
+                {t.exportStudent}
+              </button>
               <button type="button" className="subtle" onClick={() => setEditing({ mode: 'delete', id: profile.id })}>
                 {t.delete}
               </button>
@@ -117,6 +165,31 @@ export function ProfilePicker({ profiles, currentId, onChoose, onCancel }: Profi
           {t.add}
         </button>
       </form>
+
+      <section className="backup">
+        <h3>{t.backupTitle}</h3>
+        <p className="hint">{t.backupHint}</p>
+        <div className="profile-row">
+          <button type="button" onClick={() => void exportBackup(null)}>
+            {t.exportAll}
+          </button>
+          <button type="button" onClick={() => fileInput.current?.click()}>
+            {t.importBackup}
+          </button>
+          <input
+            ref={fileInput}
+            type="file"
+            accept="application/json,.json"
+            hidden
+            onChange={(event) => void importBackup(event)}
+          />
+        </div>
+        {message && (
+          <p className={message.tone === 'ok' ? 'backup-message ok' : 'backup-message error'} role="status">
+            {message.text}
+          </p>
+        )}
+      </section>
 
       {onCancel && (
         <button type="button" className="subtle back" onClick={onCancel}>
