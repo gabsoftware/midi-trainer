@@ -20,7 +20,7 @@ export function I18nProvider({ children }: { readonly children: ReactNode }) {
 
   useEffect(() => {
     document.documentElement.lang = locale;
-    document.title = MESSAGES[locale].appTitle;
+    document.title = MESSAGES[locale].documentTitle;
     try {
       localStorage.setItem(LOCALE_STORAGE_KEY, locale);
     } catch {

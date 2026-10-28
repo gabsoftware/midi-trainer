@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AboutView, AppFooter } from './components/AboutView';
 import { SettingsView } from './components/SettingsView';
 import { MidiStatus } from './components/MidiStatus';
 import { ProfilePicker } from './components/ProfilePicker';
@@ -25,7 +26,7 @@ export default function App() {
   const history = useHistory();
   const { t, locale, setLocale } = useI18n();
   const [picker, setPicker] = useState<PickerState>('auto');
-  const [view, setView] = useState<'training' | 'stats' | 'settings'>('training');
+  const [view, setView] = useState<'training' | 'stats' | 'settings' | 'about'>('training');
   /** Réglages par élève, lus une fois puis gardés en mémoire. */
   const [preferencesByProfile, setPreferencesByProfile] = useState<Readonly<Record<string, Preferences>>>({});
 
@@ -50,7 +51,10 @@ export default function App() {
   };
 
   let content;
-  if (!currentProfile || !preferences) {
+  if (view === 'about') {
+    // Accessible depuis n'importe quel écran, même avant de choisir un élève.
+    content = <AboutView onBack={() => setView('training')} />;
+  } else if (!currentProfile || !preferences) {
     content = <p className="loading">{t.loading}</p>;
   } else if (showWelcome) {
     content = <WelcomeName profileId={currentProfile.id} onDone={() => setPicker('closed')} />;
@@ -79,7 +83,7 @@ export default function App() {
       <Trainer key={currentProfile.id} midi={midi} preferences={preferences} onPreferencesChange={updatePreferences} />
     );
   }
-  const showNav = currentProfile !== null && !showPicker && !showWelcome;
+  const showNav = currentProfile !== null && !showPicker && !showWelcome && view !== 'about';
 
   return (
     <div className="app">
@@ -152,6 +156,7 @@ export default function App() {
         </div>
       )}
       {content}
+      <AppFooter onAbout={() => setView('about')} />
     </div>
   );
 }

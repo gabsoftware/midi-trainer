@@ -1,0 +1,11 @@
+{
+  "name": "Lecture de notes au clavier MIDI",
+  "short_name": "Lecture de notes",
+  "description": "Entraînement progressif à la lecture de notes avec un clavier MIDI.",
+  "lang": "fr",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f5f2",
+  "theme_color": "#2f5bd3",
+  "icons": [{ "src": "/favicon.svg", "type": "image/svg+xml", "sizes": "any", "purpose": "any" }]
+}

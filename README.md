@@ -64,6 +64,18 @@ Au premier lancement, le navigateur demande l'autorisation d'accéder aux périp
 
 Sous WSL2, lancez `npm run dev` dans WSL et ouvrez `http://localhost:5173` dans Chrome ou Edge côté Windows. Le clavier MIDI est vu par le navigateur Windows, donc aucune configuration USB n'est nécessaire dans WSL.
 
+## Configuration de la publication
+
+Le code ne contient ni domaine ni marque. Ce qui identifie une publication se règle dans `.env.local` (ignoré par git), lu par Vite en développement et au build. Copier [.env.example](.env.example) vers `.env.local` et compléter ; tout est facultatif :
+
+- `VITE_SITE_URL` : adresse publique du site. Sert à l'adresse canonique, aux adresses absolues de l'aperçu de partage (`og:url`, `og:image`), aux données structurées schema.org et à `sitemap.xml`. Sans elle, ces éléments ne sont pas générés (`robots.txt` l'est toujours).
+- `VITE_AUTHOR_NAME`, `VITE_AUTHOR_URL` : éditeur, affiché dans le pied de page et la page « À propos » (« Réalisé par … »), et repris dans les données structurées. Sans nom, aucune mention.
+- `VITE_SOURCE_URL` : lien vers le code source dans « À propos » (la licence GPL demande de le proposer aux utilisateurs).
+
+La page « À propos » affiche aussi la version de `package.json` et le commit du build (suivi de `+` si des modifications n'étaient pas commitées).
+
+Référencement : le titre, la description et l'aperçu de partage (Open Graph, Twitter) sont dans [index.html](index.html) ; l'icône ([public/favicon.svg](public/favicon.svg)), le manifeste d'application et l'image d'aperçu ([public/og-image.png](public/og-image.png), 1200 × 630) sont dans `public/`. Le reste est généré au build par le module `seo` de [vite.config.ts](vite.config.ts).
+
 ## Sons de piano
 
 Les sons ne font pas partie du dépôt : chacun produit les siens, avec le piano de son choix (instrument logiciel ou clavier réel). Le dépôt fournit les deux outils qui encadrent l'enregistrement : un fichier MIDI à faire jouer, puis le découpage du résultat. L'enregistrement lui-même se fait avec vos propres logiciels.

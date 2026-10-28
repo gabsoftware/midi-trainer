@@ -9,6 +9,8 @@ import type { Locale } from './locale';
  */
 const fr = {
   appTitle: 'Lecture de notes',
+  /** Titre de l'onglet et des résultats de recherche (même texte que dans index.html). */
+  documentTitle: 'Lecture de notes au clavier MIDI — entraînement au déchiffrage',
   language: 'Langue',
 
   clef: { treble: 'Clé de sol', bass: 'Clé de fa', grand: 'Grand système' } satisfies Record<LevelClef, string>,
@@ -86,6 +88,20 @@ const fr = {
   // Statistiques
   navTraining: 'Entraînement',
   navStats: 'Statistiques',
+  aboutLink: 'À propos',
+  aboutTitle: (app: string) => `À propos de « ${app} »`,
+  aboutVersion: (version: string) => `Version ${version}`,
+  aboutCommit: (commit: string) => `build ${commit}`,
+  aboutDescription:
+    'Entraînement à la lecture de notes sur la portée, avec un clavier MIDI, le clavier de l’ordinateur ou le clavier affiché.',
+  madeBy: 'Réalisé par',
+  aboutPrivacy:
+    'La progression des élèves reste dans ce navigateur : rien n’est envoyé sur Internet. Pensez à exporter une sauvegarde.',
+  aboutLicenseTitle: 'Licence',
+  aboutLicense: 'Logiciel libre, sous licence',
+  aboutSource: 'code source',
+  aboutCredits:
+    'Composants tiers : React et VexFlow (licence MIT) ; polices musicales Bravura et Academico (SIL Open Font License 1.1).',
   statsTitle: (student: string) => `Statistiques de ${student}`,
   statsAllLevels: 'Tous les niveaux',
   statsEmpty: 'Pas encore de données pour ce choix : jouez une séance, les statistiques apparaîtront ici.',
@@ -248,6 +264,7 @@ export type Messages = typeof fr;
 
 const en: Messages = {
   appTitle: 'Note Reading',
+  documentTitle: 'Note Reading with a MIDI Keyboard — Sight-Reading Practice',
   language: 'Language',
 
   clef: { treble: 'Treble clef', bass: 'Bass clef', grand: 'Grand staff' },
@@ -319,6 +336,18 @@ const en: Messages = {
 
   navTraining: 'Practice',
   navStats: 'Statistics',
+  aboutLink: 'About',
+  aboutTitle: (app) => `About “${app}”`,
+  aboutVersion: (version) => `Version ${version}`,
+  aboutCommit: (commit) => `build ${commit}`,
+  aboutDescription: 'Practice reading notes on the staff, with a MIDI keyboard, the computer keyboard or the on-screen keyboard.',
+  madeBy: 'Made by',
+  aboutPrivacy: 'Student progress stays in this browser: nothing is sent over the Internet. Remember to export a backup.',
+  aboutLicenseTitle: 'License',
+  aboutLicense: 'Free software, licensed under the',
+  aboutSource: 'source code',
+  aboutCredits:
+    'Third-party components: React and VexFlow (MIT license); Bravura and Academico music fonts (SIL Open Font License 1.1).',
   statsTitle: (student) => `${student}'s statistics`,
   statsAllLevels: 'All levels',
   statsEmpty: 'No data yet for this selection: play a session and statistics will appear here.',
