@@ -275,3 +275,5 @@ Ne pas implémenter immédiatement les fonctionnalités avancées (lecture à de
 | 2026-10-28 | Dépendances : uniquement des versions publiées depuis plus de 15 jours (contrainte `min-release-age = 15` dans `~/.npmrc`). |
 | 2026-10-28 | Notation interne : numéros MIDI (0–127). Affichage en notation scientifique : Do4 = do central = MIDI 60. |
 | 2026-10-28 | Prototype vertical validé par l'utilisateur avec un vrai clavier MIDI. |
+| 2026-10-28 | **Interface bilingue français / anglais** (complète la section 2, « interface entièrement en français »). Langue par défaut : celle du navigateur, sinon le français. Noms de notes Do Ré Mi / C D E, octaves en notation scientifique dans les deux langues. |
+| 2026-10-28 | Niveaux non verrouillés (section 6 : sélection manuelle) : l'application conseille le premier niveau non maîtrisé. Maîtrise = volume, précision du premier coup, temps médian et régularité sur plusieurs séances et plusieurs jours. Octave exacte par défaut dès qu'un niveau comporte des lignes supplémentaires. |

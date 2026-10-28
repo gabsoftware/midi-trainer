@@ -1,3 +1,4 @@
+import { useI18n } from '../i18n/context';
 import { pitchClass } from '../music/pitch';
 
 const BLACK_PITCH_CLASSES = new Set([1, 3, 6, 8, 10]);
@@ -15,6 +16,7 @@ interface PianoKeysProps {
 
 /** Clavier miniature indiquant les touches enfoncées (C2 à C7 par défaut, 61 touches). */
 export function PianoKeys({ pressed, low = 36, high = 96 }: PianoKeysProps) {
+  const { t } = useI18n();
   const whites: { note: number; x: number }[] = [];
   const blacks: { note: number; x: number }[] = [];
   let x = 0;
@@ -54,7 +56,7 @@ export function PianoKeys({ pressed, low = 36, high = 96 }: PianoKeysProps) {
           />
         ))}
       </svg>
-      {outOfRange && <span className="piano-note">Touche hors de l’affichage</span>}
+      {outOfRange && <span className="piano-note">{t.keyOutOfRange}</span>}
     </div>
   );
 }

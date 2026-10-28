@@ -18,6 +18,11 @@ const SEMITONE_BY_CODE: Readonly<Record<string, number>> = {
   KeyP: 15, Semicolon: 16, Quote: 17,
 };
 
+/** Touches blanches de la première octave (Do à Do), pour l'aide affichée. */
+export const WHITE_KEY_CODES = ['KeyA', 'KeyS', 'KeyD', 'KeyF', 'KeyG', 'KeyH', 'KeyJ', 'KeyK'] as const;
+export const OCTAVE_DOWN_CODE = 'KeyZ';
+export const OCTAVE_UP_CODE = 'KeyX';
+
 export const DEFAULT_BASE_NOTE = 60; // Do4, do central
 const MIN_BASE_NOTE = 24;
 const MAX_BASE_NOTE = 96;
@@ -69,8 +74,8 @@ export function attachComputerKeyboard(
     if (event.repeat || event.ctrlKey || event.metaKey || event.altKey || isTypingTarget(event.target)) {
       return;
     }
-    if (event.code === 'KeyZ' || event.code === 'KeyX') {
-      baseNote = shiftBaseNote(baseNote, event.code === 'KeyZ' ? -1 : 1);
+    if (event.code === OCTAVE_DOWN_CODE || event.code === OCTAVE_UP_CODE) {
+      baseNote = shiftBaseNote(baseNote, event.code === OCTAVE_DOWN_CODE ? -1 : 1);
       onBaseNoteChange?.(baseNote);
       event.preventDefault();
       return;

@@ -1,22 +1,22 @@
 # MIDI Sight Reading Trainer
 
-Application web locale pour apprendre à lire les notes sur une portée en jouant sur un clavier MIDI.
+Application web locale pour apprendre à lire les notes sur une portée en jouant sur un clavier MIDI. Interface en français et en anglais.
 
 Le cahier des charges complet et le journal des décisions sont dans [docs/cahier-des-charges.md](docs/cahier-des-charges.md).
 
-## État actuel : prototype vertical (phase 0)
+## État actuel
 
-Le prototype couvre le chemin critique de bout en bout : **afficher une note → recevoir une touche MIDI → valider la réponse**.
+- **Reconnaissance de notes isolées (mode A).** Une bonne réponse passe la note en vert et fait avancer l'exercice. Une mauvaise réponse fait clignoter la note en rouge, sans avancer.
+- **Parcours en 10 niveaux.** Les niveaux 1 à 6 et 8 sont jouables : clé de sol, clé de fa, lignes supplémentaires, grand système. Les niveaux 7 (séquences), 9 (accords et altérations) et 10 (rythme) sont annoncés « à venir ».
+- **Choix libre du niveau**, avec un niveau conseillé : le premier niveau jouable non maîtrisé. Pour chaque niveau, l'application affiche les critères de maîtrise et leur état.
+- **Octave** : indifférente ou exacte. Par défaut, c'est le niveau qui décide : octave exacte dès qu'il y a des lignes supplémentaires.
+- **Temps mesurés** : temps de première réponse et temps jusqu'à la bonne réponse, sur une horloge monotone, pauses exclues.
+- **Pause automatique** si le clavier MIDI est débranché ou si l'onglet est masqué.
+- **Historique local** (IndexedDB), conservé après rechargement.
+- **Interface bilingue** français / anglais. Les noms de notes suivent la langue (Do Ré Mi / C D E).
+- **Indicateur des touches enfoncées**, journal de la séance, simulation au clavier d'ordinateur.
 
-- Note aléatoire en clé de sol parmi Mi, Fa, Sol, La, Si, Do, Ré (Mi4 → Ré5), sans répétition immédiate.
-- Une bonne réponse passe la note en vert, puis l'exercice avance automatiquement. Une mauvaise réponse fait clignoter la note en rouge, sans avancer.
-- Octave indifférente (par défaut) ou exacte.
-- Temps de première réponse et temps jusqu'à la bonne réponse, mesurés sur une horloge monotone, pauses exclues.
-- Pause automatique si le clavier MIDI est débranché ou si l'onglet est masqué.
-- Indicateur des touches enfoncées et journal de la séance.
-- **Historique local** : chaque note réussie est enregistrée dans IndexedDB et conservée après rechargement. L'enregistrement contient la note attendue, les notes jouées, la réussite du premier coup, les deux temps, la date, le niveau et le mode.
-
-Pas encore implémentés : niveaux et progression, adaptation, statistiques, séquences.
+Pas encore implémentés : adaptation de la fréquence des notes, réglages de séance (nombre de notes, chronomètre…), statistiques, séquences.
 
 ## Démarrage
 
@@ -41,22 +41,31 @@ Sous WSL2, lancez `npm run dev` dans WSL et ouvrez `http://localhost:5173` dans 
 | Entrée | Démarrer / recommencer |
 | Espace | Pause / reprendre |
 
-**Sans clavier MIDI**, la simulation au clavier de l'ordinateur s'active par une case à cocher. Elle utilise la position physique des touches, donc la même disposition en AZERTY et en QWERTY :
+**Sans clavier MIDI**, la simulation au clavier de l'ordinateur s'active par une case à cocher. Elle utilise la position physique des touches, donc la même disposition en AZERTY et en QWERTY. L'aide affichée indique les lettres de votre clavier.
 
-- rangée du milieu `Q S D F G H J K L M ù` (AZERTY) : touches blanches à partir du do central ;
-- rangée du haut `Z E _ T Y U _ O P` : touches noires ;
-- `W` / `X` : octave inférieure / supérieure.
+- rangée du milieu (`Q S D F G H J K` en AZERTY, `A S D F G H J K` en QWERTY) : touches blanches à partir du do central ;
+- rangée du haut : touches noires ;
+- `W` / `X` en AZERTY (`Z` / `X` en QWERTY) : octave inférieure / supérieure.
 
 ## Choix techniques
 
-- **Numéros MIDI comme référence interne.** Aucune dépendance à la numérotation d'octave d'un constructeur (Yamaha, Roland…). L'affichage utilise la notation scientifique : Do4 = do central = MIDI 60.
+- **Numéros MIDI comme référence interne.** Aucune dépendance à la numérotation d'octave d'un constructeur (Yamaha, Roland…). L'affichage utilise la notation scientifique dans les deux langues : Do4 / C4 = do central = MIDI 60.
 - **Un seul périphérique écouté à la fois.** `MidiInputManager` détache toujours l'entrée précédente avant d'attacher la suivante, avec un gestionnaire d'événement de référence stable. Un double `addEventListener` reste donc sans effet. Le branchement à chaud est géré : si le clavier choisi revient, y compris sous un autre identifiant ou comme nouvel objet, l'écoute reprend. Ces cas sont couverts par des tests avec un faux Web MIDI.
 - **Tous les canaux MIDI** sont acceptés. Un Note On de vélocité 0 est un Note Off. Les autres messages (pédale, horloge, active sensing…) sont ignorés.
 - **Horloge monotone.** Les temps sont calculés à partir de l'horodatage `MIDIMessageEvent.timeStamp`, sur la même base que `performance.now()`, et non à l'instant de traitement par React. Une touche horodatée avant l'affichage de la note est ignorée.
 - **Logique d'exercice pure.** `exercises/singleNote.ts` est une machine à états sans horloge cachée (l'instant est passé en paramètre) : elle est déterministe et testée sans navigateur.
-- **Simulation clavier** par le même type d'événement (`NoteEvent`) que le vrai MIDI : le reste de l'application ne fait pas la différence.
-- **VexFlow 5** (entrée `vexflow/bravura`, police Bravura uniquement). Le rendu attend le chargement de la police et s'adapte à la largeur disponible.
+- **Niveaux décrits par des données** (`learning/levels.ts`) : notes autorisées, clé, type d'exercice, octave par défaut, seuil de réponse rapide, critères de maîtrise. Les composants React ne contiennent aucune règle propre à un niveau. Les tests vérifient la cohérence de la configuration, dont l'octave exacte obligatoire en présence de lignes supplémentaires.
+- **Maîtrise d'un niveau** (`learning/mastery.ts`) : jamais sur un score ponctuel. Les quatre critères suivants doivent être remplis ensemble.
+  - **Volume** : un nombre minimal de notes jouées.
+  - **Précision** : un taux de réussite du premier coup sur les dernières notes.
+  - **Vitesse** : un temps de reconnaissance médian, pris sur les notes trouvées du premier coup.
+  - **Régularité** : les dernières séances réussies d'affilée, réparties sur plusieurs jours.
+
+  Une séance ratée remet la régularité à zéro. Si un niveau exige l'octave exacte, les notes jouées en octave libre ne comptent pas. Les niveaux ne sont pas verrouillés : le cahier des charges demande un choix manuel, donc l'application conseille au lieu d'imposer.
 - **Historique en IndexedDB**, sans bibliothèque intermédiaire. Les données sont disponibles immédiatement en mémoire et écrites en arrière-plan, dans l'ordre des appels. Une écriture n'est considérée comme faite qu'une fois la transaction validée. Si le stockage échoue ou est indisponible, l'application continue en mémoire et affiche l'erreur. Les enregistrements portent un numéro de schéma et sont validés à la relecture : un enregistrement corrompu est ignoré et signalé, sans bloquer le reste. Une séance n'est créée qu'à la première note réussie, ce qui évite les séances vides.
+- **Internationalisation sans dépendance** (`i18n/`). Un dictionnaire par langue, typé : le dictionnaire anglais a le type du français, donc une clé ou un paramètre manquant ne compile pas. Les textes paramétrés sont des fonctions, ce qui gère le pluriel. Les données de configuration (titres des niveaux) portent leurs textes dans les deux langues. Les modules non graphiques (MIDI, historique) renvoient des codes d'erreur, traduits par l'interface. La langue par défaut est celle du navigateur, le français à défaut ; le choix est mémorisé.
+- **Simulation clavier** par le même type d'événement (`NoteEvent`) que le vrai MIDI : le reste de l'application ne fait pas la différence.
+- **VexFlow 5** (entrée `vexflow/bravura`, police Bravura uniquement). Le rendu attend le chargement de la police et s'adapte à la largeur disponible. Le grand système relie les deux portées par une accolade, et la note s'affiche en clé de sol à partir du do central.
 - **Dépendances** limitées à React et VexFlow, plus Vitest et `fake-indexeddb` (IndexedDB en mémoire pour les tests) en développement. Toutes sont des versions publiées depuis au moins 15 jours.
 
 ## Architecture
@@ -65,13 +74,14 @@ Sous WSL2, lancez `npm run dev` dans WSL et ouvrez `http://localhost:5173` dans 
 src/
   midi/        events.ts (décodage des messages), MidiInputManager.ts (accès, périphériques, branchement à chaud),
                computerKeyboard.ts (simulation)
-  music/       pitch.ts (conversions MIDI ↔ hauteur, noms français, clés VexFlow), validation.ts (octave exacte/indifférente)
+  music/       pitch.ts (conversions MIDI ↔ hauteur, noms de notes, clés VexFlow), validation.ts (octave exacte/indifférente)
   exercises/   singleNote.ts (exercice note isolée : validation, chronomètre, pauses)
+  learning/    levels.ts (parcours en 10 niveaux), mastery.ts (critères de maîtrise, niveau conseillé)
+  statistics/  basic.ts (médiane, moyenne)
   storage/     records.ts (format et validation des enregistrements), historyStore.ts (IndexedDB / mémoire),
-               HistoryService.ts (cache, file d'écriture, erreurs)
-  hooks/       useMidi.ts, useHistory.ts (ponts entre les services et React)
-  components/  StaffView (VexFlow), MidiStatus, PianoKeys
-  App.tsx      écran du prototype
+               HistoryService.ts (cache, file d'écriture, erreurs), preferences.ts (réglages locaux)
+  i18n/        locale.ts, messages.ts (dictionnaires fr / en), context.ts, I18nProvider.tsx
+  hooks/       useMidi.ts, useHistory.ts, useKeyLabels.ts (ponts entre les services et React)
+  components/  Trainer, LevelPicker, StaffView (VexFlow), MidiStatus, PianoKeys
+  App.tsx      en-tête (état MIDI, langue) et écran d'entraînement
 ```
-
-Les dossiers `learning/` et `statistics/` prévus par le cahier des charges seront ajoutés avec les fonctionnalités correspondantes.

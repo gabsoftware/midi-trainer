@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
   diatonicIndex,
-  frenchName,
   isValidMidiNote,
   midiToPitch,
   naturalNotesBetween,
   parseMidi,
   parsePitch,
   pitchClass,
+  pitchName,
   pitchToMidi,
   toVexflowKey,
 } from './pitch';
@@ -84,10 +84,17 @@ describe('parsePitch', () => {
 
 describe('affichage', () => {
   it('donne les noms français', () => {
-    expect(frenchName(midiToPitch(67))).toBe('Sol');
-    expect(frenchName(midiToPitch(62), { withOctave: true })).toBe('Ré4');
-    expect(frenchName(midiToPitch(66))).toBe('Fa♯');
-    expect(frenchName(midiToPitch(70, 'flat'))).toBe('Si♭');
+    expect(pitchName(midiToPitch(67), 'fr')).toBe('Sol');
+    expect(pitchName(midiToPitch(62), 'fr', { withOctave: true })).toBe('Ré4');
+    expect(pitchName(midiToPitch(66), 'fr')).toBe('Fa♯');
+    expect(pitchName(midiToPitch(70, 'flat'), 'fr')).toBe('Si♭');
+  });
+
+  it('donne les noms anglais', () => {
+    expect(pitchName(midiToPitch(67), 'en')).toBe('G');
+    expect(pitchName(midiToPitch(62), 'en', { withOctave: true })).toBe('D4');
+    expect(pitchName(midiToPitch(66), 'en')).toBe('F♯');
+    expect(pitchName(midiToPitch(70, 'flat'), 'en', { withOctave: true })).toBe('B♭4');
   });
 
   it('produit les clés VexFlow', () => {

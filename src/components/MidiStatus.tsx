@@ -1,24 +1,28 @@
+import { useI18n } from '../i18n/context';
+import type { Messages } from '../i18n/messages';
 import { midiManager } from '../hooks/useMidi';
 import type { MidiSnapshot } from '../midi/MidiInputManager';
 
-function statusText(midi: MidiSnapshot): { label: string; tone: 'ok' | 'warn' | 'error' } {
+function statusText(midi: MidiSnapshot, t: Messages): { label: string; tone: 'ok' | 'warn' | 'error' } {
+  const name = midi.selectedName || t.midiUnnamedDevice;
   switch (midi.access) {
     case 'unsupported':
-      return { label: 'Web MIDI non disponible (utilisez Chrome ou Edge)', tone: 'error' };
+      return { label: t.midiUnsupported, tone: 'error' };
     case 'denied':
-      return { label: 'Accès MIDI refusé', tone: 'error' };
+      return { label: t.midiDenied, tone: 'error' };
     case 'idle':
     case 'pending':
-      return { label: 'Connexion MIDI…', tone: 'warn' };
+      return { label: t.midiConnecting, tone: 'warn' };
     case 'granted':
-      if (midi.listening) return { label: `Connecté : ${midi.selectedName ?? 'clavier MIDI'}`, tone: 'ok' };
-      if (midi.selectedId) return { label: `Clavier débranché : ${midi.selectedName ?? ''}`, tone: 'error' };
-      return { label: 'Aucun clavier MIDI', tone: 'warn' };
+      if (midi.listening) return { label: t.midiConnected(name), tone: 'ok' };
+      if (midi.selectedId) return { label: t.midiUnplugged(name), tone: 'error' };
+      return { label: t.midiNone, tone: 'warn' };
   }
 }
 
 export function MidiStatus({ midi }: { readonly midi: MidiSnapshot }) {
-  const { label, tone } = statusText(midi);
+  const { t } = useI18n();
+  const { label, tone } = statusText(midi, t);
   const connectedDevices = midi.devices.filter((device) => device.connected);
 
   return (
@@ -27,22 +31,24 @@ export function MidiStatus({ midi }: { readonly midi: MidiSnapshot }) {
       <span className="status-label">{label}</span>
       {midi.access === 'granted' && connectedDevices.length > 0 && (
         <select
-          aria-label="Périphérique MIDI"
+          aria-label={t.midiDevice}
           value={midi.selectedId ?? ''}
           onChange={(event) => midiManager.select(event.target.value || null)}
         >
-          <option value="">— Aucun —</option>
+          <option value="">{t.midiNoDevice}</option>
           {midi.selectedId && !connectedDevices.some((device) => device.id === midi.selectedId) && (
-            <option value={midi.selectedId}>{midi.selectedName ?? midi.selectedId} (débranché)</option>
+            <option value={midi.selectedId}>
+              {midi.selectedName || t.midiUnnamedDevice} {t.midiUnpluggedSuffix}
+            </option>
           )}
           {connectedDevices.map((device) => (
             <option key={device.id} value={device.id}>
-              {device.name}
+              {device.name || t.midiUnnamedDevice}
             </option>
           ))}
         </select>
       )}
-      {midi.error && <span className="status-error">{midi.error}</span>}
+      {midi.error?.code === 'open-failed' && <span className="status-error">{t.midiOpenFailed(midi.error.device)}</span>}
     </div>
   );
 }

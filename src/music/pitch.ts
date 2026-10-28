@@ -1,3 +1,5 @@
+import type { Locale } from '../i18n/locale';
+
 /**
  * Hauteurs musicales.
  *
@@ -73,10 +75,15 @@ export function parseMidi(text: string): number {
   return pitchToMidi(parsePitch(text));
 }
 
-const FRENCH_ALTER_SIGNS: Record<Alter, string> = { [-2]: '𝄫', [-1]: '♭', 0: '', 1: '♯', 2: '𝄪' };
+const ALTER_SIGNS: Record<Alter, string> = { [-2]: '𝄫', [-1]: '♭', 0: '', 1: '♯', 2: '𝄪' };
 
-export function frenchName(pitch: Pitch, options: { withOctave?: boolean } = {}): string {
-  const base = FRENCH_STEP_NAMES[pitch.step] + FRENCH_ALTER_SIGNS[pitch.alter];
+/**
+ * Nom d'une note dans la langue de l'interface : « Sol♯4 » en français, « G♯4 » en anglais.
+ * Le numéro d'octave suit la notation scientifique (4 = octave du do central) dans les deux langues.
+ */
+export function pitchName(pitch: Pitch, locale: Locale, options: { withOctave?: boolean } = {}): string {
+  const step = locale === 'fr' ? FRENCH_STEP_NAMES[pitch.step] : pitch.step;
+  const base = step + ALTER_SIGNS[pitch.alter];
   return options.withOctave ? `${base}${pitch.octave}` : base;
 }
 

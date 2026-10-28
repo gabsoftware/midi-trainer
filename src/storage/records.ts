@@ -9,7 +9,7 @@ import type { OctaveMode } from '../music/validation';
 export const RECORD_SCHEMA = 1;
 
 export type ExerciseMode = 'single' | 'sequence';
-export type ClefName = 'treble' | 'bass';
+export type ClefName = 'treble' | 'bass' | 'grand';
 
 /** Contexte d'exercice commun à une séance et à ses tentatives. */
 export interface ExerciseContext {
@@ -100,7 +100,7 @@ function hasContext(value: Unknown): boolean {
   return (
     isNonEmptyString(value.levelId) &&
     (value.mode === 'single' || value.mode === 'sequence') &&
-    (value.clef === 'treble' || value.clef === 'bass')
+    (value.clef === 'treble' || value.clef === 'bass' || value.clef === 'grand')
   );
 }
 

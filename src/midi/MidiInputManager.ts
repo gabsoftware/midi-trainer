@@ -2,8 +2,12 @@ import { parseMidiMessage, type NoteListener } from './events';
 
 export type MidiAccessState = 'idle' | 'pending' | 'granted' | 'denied' | 'unsupported';
 
+/** Erreur MIDI sous forme de code : le texte est produit par l'interface, dans la langue choisie. */
+export type MidiError = { readonly code: 'open-failed'; readonly device: string };
+
 export interface MidiDeviceInfo {
   readonly id: string;
+  /** Nom fourni par le pilote ; chaîne vide s'il est absent. */
   readonly name: string;
   readonly manufacturer: string;
   readonly connected: boolean;
@@ -17,7 +21,7 @@ export interface MidiSnapshot {
   readonly selectedName: string | null;
   /** Vrai seulement si le périphérique choisi est branché et écouté. */
   readonly listening: boolean;
-  readonly error: string | null;
+  readonly error: MidiError | null;
 }
 
 export type RequestMidiAccess = () => Promise<MIDIAccess>;
@@ -82,8 +86,8 @@ export class MidiInputManager {
     this.update({ access: 'pending' });
     try {
       this.access = await this.requestAccess();
-    } catch (error) {
-      this.update({ access: 'denied', error: error instanceof Error ? error.message : String(error) });
+    } catch {
+      this.update({ access: 'denied' });
       return;
     }
     this.access.addEventListener('statechange', this.handleStateChange);
@@ -139,7 +143,7 @@ export class MidiInputManager {
     }
     input.addEventListener('midimessage', this.handleMessage);
     // L'ouverture explicite garantit la réception, quel que soit le navigateur.
-    input.open().catch(() => this.update({ error: `Impossible d'ouvrir « ${input.name ?? id} ».` }));
+    input.open().catch(() => this.update({ error: { code: 'open-failed', device: input.name ?? id } }));
     this.attachedInput = input;
     this.update({ listening: true, error: null });
   }
@@ -167,7 +171,7 @@ export class MidiInputManager {
     }
     return Array.from(this.access.inputs.values(), (input) => ({
       id: input.id,
-      name: input.name || 'Périphérique sans nom',
+      name: input.name ?? '',
       manufacturer: input.manufacturer ?? '',
       connected: input.state === 'connected',
     }));

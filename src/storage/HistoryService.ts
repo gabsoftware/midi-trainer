@@ -15,8 +15,18 @@ export interface HistorySnapshot {
   readonly attempts: readonly AttemptRecord[];
   readonly sessions: readonly SessionRecord[];
   /** Dernier problème de lecture ou d'écriture, affiché discrètement. */
-  readonly error: string | null;
+  readonly error: HistoryError | null;
 }
+
+/**
+ * Erreur d'historique sous forme de code ; le texte est produit par l'interface.
+ * `detail` est le message technique d'origine (souvent en anglais, fourni par le navigateur).
+ */
+export type HistoryError =
+  | { readonly code: 'no-storage' }
+  | { readonly code: 'load-failed'; readonly detail: string }
+  | { readonly code: 'write-failed'; readonly detail: string }
+  | { readonly code: 'skipped-records'; readonly count: number };
 
 const INITIAL_SNAPSHOT: HistorySnapshot = { status: 'loading', attempts: [], sessions: [], error: null };
 
@@ -67,7 +77,7 @@ export class HistoryService {
 
   private async doLoad(): Promise<void> {
     if (!this.store) {
-      this.update({ status: 'unavailable', error: 'Stockage local indisponible : l’historique ne sera pas conservé.' });
+      this.update({ status: 'unavailable', error: { code: 'no-storage' } });
       return;
     }
     try {
@@ -76,10 +86,10 @@ export class HistoryService {
         status: 'ready',
         attempts: mergeById(stored.attempts, this.snapshot.attempts),
         sessions: mergeById(stored.sessions, this.snapshot.sessions),
-        error: stored.skipped > 0 ? `${stored.skipped} enregistrement(s) illisible(s) ignoré(s).` : this.snapshot.error,
+        error: stored.skipped > 0 ? { code: 'skipped-records', count: stored.skipped } : this.snapshot.error,
       });
     } catch (error) {
-      this.update({ status: 'unavailable', error: `Historique illisible : ${describe(error)}` });
+      this.update({ status: 'unavailable', error: { code: 'load-failed', detail: describe(error) } });
     }
   }
 
@@ -130,7 +140,7 @@ export class HistoryService {
     if (!store) return;
     this.writeQueue = this.writeQueue
       .then(() => write(store))
-      .catch((error: unknown) => this.update({ error: `L’historique n’a pas pu être enregistré : ${describe(error)}` }));
+      .catch((error: unknown) => this.update({ error: { code: 'write-failed', detail: describe(error) } }));
   }
 
   private update(patch: Partial<HistorySnapshot>): void {

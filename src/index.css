@@ -129,8 +129,59 @@ kbd {
   font-size: 0.9rem;
 }
 
+.header-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.level-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.level-select {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 600;
+}
+
+.level-select select {
+  flex: 1;
+  max-width: 100%;
+  font-weight: 400;
+}
+
+.level-description {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.level-progress {
+  font-size: 0.85rem;
+}
+
+.level-progress summary {
+  cursor: pointer;
+  color: var(--muted);
+}
+
+.level-progress ul {
+  margin: 0.4rem 0 0;
+  padding-left: 1.2rem;
+  list-style: '○  ';
+}
+
+.level-progress li.met {
+  list-style: '✓  ';
+  color: var(--ok);
+}
+
 .history-summary {
-  margin-top: -0.6rem;
   color: var(--muted);
   font-size: 0.8rem;
 }

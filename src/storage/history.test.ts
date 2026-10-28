@@ -170,7 +170,7 @@ describe('HistoryService', () => {
     service.recordAttempt(session.id, attempt(64, [64]));
     await service.flush();
     expect(service.getSnapshot().attempts).toHaveLength(1);
-    expect(service.getSnapshot().error).toMatch(/quota dépassé/);
+    expect(service.getSnapshot().error).toEqual({ code: 'write-failed', detail: 'quota dépassé' });
   });
 
   it('fonctionne sans stockage, en le signalant', async () => {
@@ -178,7 +178,7 @@ describe('HistoryService', () => {
     await service.load();
     const session = service.startSession(CONTEXT);
     service.recordAttempt(session.id, attempt(64, [64]));
-    expect(service.getSnapshot()).toMatchObject({ status: 'unavailable' });
+    expect(service.getSnapshot()).toMatchObject({ status: 'unavailable', error: { code: 'no-storage' } });
     expect(service.getSnapshot().attempts).toHaveLength(1);
   });
 
@@ -190,7 +190,7 @@ describe('HistoryService', () => {
     const service = new HistoryService(store);
     await service.load();
     expect(service.getSnapshot().attempts).toHaveLength(0);
-    expect(service.getSnapshot().error).toMatch(/1 enregistrement/);
+    expect(service.getSnapshot().error).toEqual({ code: 'skipped-records', count: 1 });
   });
 
   it('ignore une tentative dont la séance a été effacée', async () => {
