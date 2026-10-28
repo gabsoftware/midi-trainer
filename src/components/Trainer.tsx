@@ -479,6 +479,9 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
                   {t.goToLevel(next.number)} <kbd>{t.keyEnter}</kbd>
                 </button>
               )}
+              <button type="button" onClick={() => startExam(level)}>
+                {t.retryExam}
+              </button>
               <button type="button" onClick={dismissAdvice}>
                 {t.stayOnLevel} <kbd>{t.keyEscape}</kbd>
               </button>
