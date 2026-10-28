@@ -11,21 +11,29 @@ import {
   type NoteAttempt,
   type SingleNoteState,
 } from './exercises/singleNote';
+import { historyService, useHistory } from './hooks/useHistory';
 import { midiManager, useMidi, useNoteEvents } from './hooks/useMidi';
 import type { NoteEvent } from './midi/events';
 import { frenchName, midiToPitch, naturalNotesBetween } from './music/pitch';
 import type { OctaveMode } from './music/validation';
+import type { ExerciseContext } from './storage/records';
 
 /** Prototype : Mi, Fa, Sol, La, Si, Do, Ré en clé de sol. */
 const NOTE_POOL = naturalNotesBetween('E4', 'D5');
 const ADVANCE_DELAY_MS = 600;
 const WRONG_FLASH_MS = 700;
 const PREFS_STORAGE_KEY = 'midi-trainer:prototype-prefs';
+/** Le pool du prototype correspond au niveau 3 du cahier des charges. */
+const EXERCISE_CONTEXT: ExerciseContext = { levelId: 'level-3', mode: 'single', clef: 'treble' };
 
 interface Session {
+  /** Séance enregistrée dans l'historique, créée à la première note réussie. */
+  readonly id: string | null;
   readonly exercise: SingleNoteState | null;
   readonly attempts: readonly NoteAttempt[];
 }
+
+const NO_SESSION: Session = { id: null, exercise: null, attempts: [] };
 
 interface Prefs {
   octaveMode: OctaveMode;
@@ -62,8 +70,12 @@ function isTypingTarget(target: EventTarget | null): boolean {
 
 export default function App() {
   const midi = useMidi();
+  const history = useHistory();
   const [prefs, setPrefs] = useState<Prefs>(readPrefs);
-  const [session, setSession] = useState<Session>({ exercise: null, attempts: [] });
+  const [session, setSession] = useState<Session>(NO_SESSION);
+  // Reflet synchrone de `session` : les événements de note sont traités un par un,
+  // et l'enregistrement d'une tentative (effet de bord) ne doit avoir lieu qu'une fois.
+  const sessionRef = useRef<Session>(NO_SESSION);
   const [pressed, setPressed] = useState<ReadonlySet<number>>(() => new Set());
   /** Horodatage de la dernière mauvaise réponse dont le signal rouge est terminé. */
   const [flashEndedAt, setFlashEndedAt] = useState<number | null>(null);
@@ -75,21 +87,33 @@ export default function App() {
     localStorage.setItem(PREFS_STORAGE_KEY, JSON.stringify(prefs));
   }, [prefs]);
 
-  const updateExercise = useCallback((update: (exercise: SingleNoteState) => SingleNoteState) => {
-    setSession((current) => {
-      if (!current.exercise) return current;
-      const next = update(current.exercise);
-      if (next === current.exercise) return current;
-      // Une note vient d'être réussie : on l'enregistre une seule fois.
-      const solved = next.attempt !== null && current.exercise.attempt === null;
-      return { exercise: next, attempts: solved ? [...current.attempts, next.attempt!] : current.attempts };
-    });
+  const commitSession = useCallback((next: Session) => {
+    sessionRef.current = next;
+    setSession(next);
   }, []);
+
+  const updateExercise = useCallback(
+    (update: (exercise: SingleNoteState) => SingleNoteState) => {
+      const current = sessionRef.current;
+      if (!current.exercise) return;
+      const next = update(current.exercise);
+      if (next === current.exercise) return;
+      if (next.attempt === null || current.exercise.attempt !== null) {
+        commitSession({ ...current, exercise: next });
+        return;
+      }
+      // Une note vient d'être réussie : on l'enregistre dans l'historique.
+      const id = current.id ?? historyService.startSession(EXERCISE_CONTEXT).id;
+      historyService.recordAttempt(id, next.attempt);
+      commitSession({ id, exercise: next, attempts: [...current.attempts, next.attempt] });
+    },
+    [commitSession],
+  );
 
   const start = useCallback(() => {
     const exercise = startNote(pickNextNote(NOTE_POOL, null, Math.random), octaveModeRef.current, performance.now());
-    setSession({ exercise, attempts: [] });
-  }, []);
+    commitSession({ id: null, exercise, attempts: [] });
+  }, [commitSession]);
 
   const togglePause = useCallback(() => {
     const now = performance.now();
@@ -200,6 +224,15 @@ export default function App() {
             {attempts.length > 0 && ` · ${Math.round((firstTryCount / attempts.length) * 100)} % du premier coup`}
             {recognitionMedian !== null && ` · médiane ${formatSeconds(recognitionMedian)}`}
           </span>
+        </div>
+
+        <div className="history-summary">
+          {history.status === 'loading'
+            ? 'Chargement de l’historique…'
+            : `Historique : ${history.attempts.length} note${history.attempts.length > 1 ? 's' : ''} sur ${
+                history.sessions.length
+              } séance${history.sessions.length > 1 ? 's' : ''}`}
+          {history.error && <span className="history-error"> · {history.error}</span>}
         </div>
 
         <section className="staff-card">

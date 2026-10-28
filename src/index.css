@@ -129,6 +129,16 @@ kbd {
   font-size: 0.9rem;
 }
 
+.history-summary {
+  margin-top: -0.6rem;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.history-error {
+  color: var(--ko);
+}
+
 .staff-card {
   position: relative;
   background: var(--surface);

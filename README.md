@@ -14,8 +14,9 @@ Le prototype couvre le chemin critique de bout en bout : **afficher une note →
 - Temps de première réponse et temps jusqu'à la bonne réponse, mesurés sur une horloge monotone, pauses exclues.
 - Pause automatique si le clavier MIDI est débranché ou si l'onglet est masqué.
 - Indicateur des touches enfoncées et journal de la séance.
+- **Historique local** : chaque note réussie est enregistrée dans IndexedDB et conservée après rechargement. L'enregistrement contient la note attendue, les notes jouées, la réussite du premier coup, les deux temps, la date, le niveau et le mode.
 
-Pas encore implémentés : niveaux et progression, adaptation, persistance de l'historique, statistiques, séquences.
+Pas encore implémentés : niveaux et progression, adaptation, statistiques, séquences.
 
 ## Démarrage
 
@@ -55,7 +56,8 @@ Sous WSL2, lancez `npm run dev` dans WSL et ouvrez `http://localhost:5173` dans 
 - **Logique d'exercice pure.** `exercises/singleNote.ts` est une machine à états sans horloge cachée (l'instant est passé en paramètre) : elle est déterministe et testée sans navigateur.
 - **Simulation clavier** par le même type d'événement (`NoteEvent`) que le vrai MIDI : le reste de l'application ne fait pas la différence.
 - **VexFlow 5** (entrée `vexflow/bravura`, police Bravura uniquement). Le rendu attend le chargement de la police et s'adapte à la largeur disponible.
-- **Dépendances** limitées à React, VexFlow et Vitest, en versions publiées depuis au moins 15 jours.
+- **Historique en IndexedDB**, sans bibliothèque intermédiaire. Les données sont disponibles immédiatement en mémoire et écrites en arrière-plan, dans l'ordre des appels. Une écriture n'est considérée comme faite qu'une fois la transaction validée. Si le stockage échoue ou est indisponible, l'application continue en mémoire et affiche l'erreur. Les enregistrements portent un numéro de schéma et sont validés à la relecture : un enregistrement corrompu est ignoré et signalé, sans bloquer le reste. Une séance n'est créée qu'à la première note réussie, ce qui évite les séances vides.
+- **Dépendances** limitées à React et VexFlow, plus Vitest et `fake-indexeddb` (IndexedDB en mémoire pour les tests) en développement. Toutes sont des versions publiées depuis au moins 15 jours.
 
 ## Architecture
 
@@ -65,9 +67,11 @@ src/
                computerKeyboard.ts (simulation)
   music/       pitch.ts (conversions MIDI ↔ hauteur, noms français, clés VexFlow), validation.ts (octave exacte/indifférente)
   exercises/   singleNote.ts (exercice note isolée : validation, chronomètre, pauses)
-  hooks/       useMidi.ts (pont entre le module MIDI et React)
+  storage/     records.ts (format et validation des enregistrements), historyStore.ts (IndexedDB / mémoire),
+               HistoryService.ts (cache, file d'écriture, erreurs)
+  hooks/       useMidi.ts, useHistory.ts (ponts entre les services et React)
   components/  StaffView (VexFlow), MidiStatus, PianoKeys
   App.tsx      écran du prototype
 ```
 
-Les dossiers `learning/`, `storage/` et `statistics/` prévus par le cahier des charges seront ajoutés avec les fonctionnalités correspondantes.
+Les dossiers `learning/` et `statistics/` prévus par le cahier des charges seront ajoutés avec les fonctionnalités correspondantes.
