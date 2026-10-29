@@ -4,6 +4,7 @@ import { historyService } from '../hooks/useHistory';
 import { useI18n } from '../i18n/context';
 import { BackupMessageView } from './BackupMessageView';
 import { backupFileName } from '../storage/backup';
+import { resetBackupReminder } from '../storage/backupReminder';
 import { deletePreferences } from '../storage/preferences';
 import { MAX_PROFILE_NAME_LENGTH, type ProfileRecord } from '../storage/records';
 import { downloadJson } from './download';
@@ -40,6 +41,7 @@ export function ProfilePicker({ profiles, currentId, onChoose, onCancel }: Profi
       const backup = await historyService.exportBackup(profile ? [profile.id] : undefined);
       const name = profile ? profileName(profile, profiles, t) : null;
       downloadJson(backupFileName(name, new Date()), backup);
+      resetBackupReminder();
       setMessage(null);
     } catch (error) {
       setMessage({ tone: 'error', text: t.exportFailed(describe(error)) });

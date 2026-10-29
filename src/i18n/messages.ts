@@ -242,6 +242,10 @@ const fr = {
     'La progression est enregistrée uniquement dans ce navigateur. Exportez-la régulièrement pour ne pas la perdre, ou pour la transférer sur un autre ordinateur.',
   exportStudent: 'Exporter',
   exportAll: 'Exporter tous les élèves',
+  backupReminderTitle: 'Pensez à sauvegarder la progression.',
+  backupReminderText:
+    'Elle n’est enregistrée que dans ce navigateur : effacer les données du site ou changer d’appareil la ferait perdre. La sauvegarde est un petit fichier, à réimporter depuis la page des élèves.',
+  backupNow: 'Sauvegarder maintenant',
   importBackup: 'Importer une sauvegarde',
   importDone: (students: number, notes: number) =>
     `Sauvegarde importée : ${students} élève${students > 1 ? 's' : ''}, ${notes} note${notes > 1 ? 's' : ''}.`,
@@ -256,8 +260,8 @@ const fr = {
   exportFailed: (detail: string) => `L’export a échoué (${detail}).`,
 
   // MIDI
-  midiUnsupported: 'Web MIDI non disponible dans ce navigateur',
-  midiDenied: 'Accès MIDI refusé',
+  midiUnsupported: 'Sans clavier MIDI',
+  midiDenied: 'MIDI non autorisé',
   midiConnecting: 'Connexion MIDI…',
   midiConnected: (name: string) => `Connecté : ${name}`,
   midiUnplugged: (name: string) => `Clavier débranché : ${name}`,
@@ -267,15 +271,16 @@ const fr = {
   midiUnpluggedSuffix: '(débranché)',
   midiUnnamedDevice: 'Périphérique sans nom',
   midiOpenFailed: (device: string) => `Impossible d’ouvrir « ${device} ».`,
-  browserUnsupportedTitle: 'Ce navigateur ne permet pas d’utiliser un clavier MIDI.',
+  browserUnsupportedTitle: 'Jouez avec le clavier à l’écran. Brancher un clavier MIDI\u00a0?',
   browserUnsupportedText:
-    'Ouvrez cette page dans Google Chrome, Microsoft Edge ou Firefox sur ordinateur. En attendant, vous pouvez vous entraîner avec le clavier de l’ordinateur.',
-  midiDeniedTitle: 'L’accès au clavier MIDI a été refusé.',
+    'Ce navigateur ne gère pas les claviers MIDI. Ouvrez cette page dans Google Chrome, Microsoft Edge ou Firefox sur ordinateur, ou dans Chrome sur Android.',
+  midiDeniedTitle: 'Jouez avec le clavier à l’écran. Utiliser votre clavier MIDI\u00a0?',
   midiDeniedText:
-    'Pour l’autoriser, cliquez sur l’icône à gauche de l’adresse du site et autorisez les périphériques MIDI, puis rechargez la page. Dans Firefox, acceptez le module d’autorisation proposé au chargement de la page.',
+    'L’accès aux claviers MIDI n’est pas autorisé pour ce site. Cliquez sur l’icône à gauche de l’adresse du site, autorisez les périphériques MIDI, puis rechargez la page. Dans Firefox, acceptez le module d’autorisation proposé au chargement de la page.',
 
   staffLabel: 'Portée musicale',
   keyOutOfRange: 'Touche hors de l’affichage',
+  rotateForBiggerKeys: 'Tournez le téléphone pour agrandir les touches.',
 };
 
 export type Messages = typeof fr;
@@ -500,6 +505,10 @@ const en: Messages = {
     'Progress is stored in this browser only. Export it regularly so it is not lost, or to move it to another computer.',
   exportStudent: 'Export',
   exportAll: 'Export all students',
+  backupReminderTitle: 'Remember to back up your progress.',
+  backupReminderText:
+    'It is only stored in this browser: clearing the site data or changing device would lose it. The backup is a small file you can import again from the students page.',
+  backupNow: 'Back up now',
   importBackup: 'Import a backup',
   importDone: (students, notes) =>
     `Backup imported: ${students} student${students > 1 ? 's' : ''}, ${notes} note${notes > 1 ? 's' : ''}.`,
@@ -513,8 +522,8 @@ const en: Messages = {
   importFailed: (detail) => `Import failed (${detail}).`,
   exportFailed: (detail) => `Export failed (${detail}).`,
 
-  midiUnsupported: 'Web MIDI unavailable in this browser',
-  midiDenied: 'MIDI access denied',
+  midiUnsupported: 'No MIDI keyboard',
+  midiDenied: 'MIDI not allowed',
   midiConnecting: 'Connecting to MIDI…',
   midiConnected: (name) => `Connected: ${name}`,
   midiUnplugged: (name) => `Keyboard unplugged: ${name}`,
@@ -524,15 +533,16 @@ const en: Messages = {
   midiUnpluggedSuffix: '(unplugged)',
   midiUnnamedDevice: 'Unnamed device',
   midiOpenFailed: (device) => `Could not open “${device}”.`,
-  browserUnsupportedTitle: 'This browser cannot use a MIDI keyboard.',
+  browserUnsupportedTitle: 'Play with the on-screen keyboard. Want to plug in a MIDI keyboard?',
   browserUnsupportedText:
-    'Open this page in Google Chrome, Microsoft Edge or Firefox on a computer. Meanwhile, you can practise with the computer keyboard.',
-  midiDeniedTitle: 'Access to the MIDI keyboard was denied.',
+    'This browser does not support MIDI keyboards. Open this page in Google Chrome, Microsoft Edge or Firefox on a computer, or in Chrome on Android.',
+  midiDeniedTitle: 'Play with the on-screen keyboard. Want to use your MIDI keyboard?',
   midiDeniedText:
-    'To allow it, click the icon to the left of the site address and allow MIDI devices, then reload the page. In Firefox, accept the site permission add-on offered when the page loads.',
+    'MIDI keyboards are not allowed for this site. Click the icon to the left of the site address, allow MIDI devices, then reload the page. In Firefox, accept the site permission add-on offered when the page loads.',
 
   staffLabel: 'Music staff',
   keyOutOfRange: 'Key outside the display',
+  rotateForBiggerKeys: 'Turn your phone sideways for bigger keys.',
 };
 
 export const MESSAGES: Readonly<Record<Locale, Messages>> = { fr, en };

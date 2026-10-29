@@ -1,10 +1,13 @@
-import { useEffect, useMemo } from 'react';
-import { useHistory } from '../hooks/useHistory';
+import { useEffect, useMemo, useState } from 'react';
+import { historyService, useHistory } from '../hooks/useHistory';
 import { useI18n } from '../i18n/context';
 import { findLevel, LEVELS } from '../learning/levels';
 import { evaluateLevel, recommendLevel, type LevelStatus } from '../learning/mastery';
 import type { Page } from '../router';
+import { backupFileName } from '../storage/backup';
+import { backupReminderDue, resetBackupReminder } from '../storage/backupReminder';
 import type { Preferences } from '../storage/preferences';
+import { downloadJson } from './download';
 import { HeroArt } from './HeroArt';
 
 interface HomeViewProps {
@@ -33,6 +36,23 @@ export function HomeView({ studentName, preferences, onNavigate }: HomeViewProps
   const chosen = findLevel(preferences?.levelId);
   const level = chosen?.available ? chosen : recommendLevel(LEVELS, progress);
   const status: LevelStatus = progress.get(level.id)?.status ?? 'new';
+  const sessionStarts = useMemo(() => history.sessions.map((session) => session.startedAt), [history.sessions]);
+  const [reminderHidden, setReminderHidden] = useState(false);
+  const showReminder = studentName !== null && !reminderHidden && backupReminderDue(sessionStarts);
+  const [backupError, setBackupError] = useState<string | null>(null);
+
+  const dismissReminder = () => {
+    resetBackupReminder();
+    setReminderHidden(true);
+  };
+  const backupNow = async () => {
+    try {
+      downloadJson(backupFileName(null, new Date()), await historyService.exportBackup());
+      dismissReminder();
+    } catch (error) {
+      setBackupError(t.exportFailed(error instanceof Error ? error.message : String(error)));
+    }
+  };
   const playable = LEVELS.filter((item) => item.available);
   const mastered = playable.filter((item) => progress.get(item.id)?.status === 'mastered').length;
   const statusLabel = { mastered: t.statusMastered, ready: t.statusReady, learning: t.statusLearning, new: t.statusNew }[
@@ -101,6 +121,23 @@ export function HomeView({ studentName, preferences, onNavigate }: HomeViewProps
           </>
         )}
       </section>
+
+      {showReminder && (
+        <section className="backup-reminder" role="status">
+          <p>
+            <strong>{t.backupReminderTitle}</strong> {t.backupReminderText}
+          </p>
+          {backupError && <p className="backup-message error">{backupError}</p>}
+          <div className="advice-actions">
+            <button type="button" className="primary" onClick={() => void backupNow()}>
+              {t.backupNow}
+            </button>
+            <button type="button" onClick={dismissReminder}>
+              {t.later}
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="home-how">
         <h3>{t.homeHowTitle}</h3>

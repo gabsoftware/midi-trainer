@@ -52,6 +52,8 @@ const STAVE_Y = { single: { treble: 45, bass: 45 }, grand: { treble: 20, bass: 1
 const SINGLE_WIDTH = 240;
 const WIDTH_PER_NOTE = 46;
 const MAX_SCALE = 2.4;
+/** Hauteur maximale du dessin, en part de la hauteur de la fenêtre. */
+const MAX_HEIGHT_RATIO = 0.45;
 
 /**
  * L'entrée `vexflow/bravura` enregistre les polices Bravura et Academico, embarquées dans le bundle.
@@ -104,7 +106,8 @@ export function StaffView({ notes, clef, cursor = null }: StaffViewProps) {
     const left = grand ? 30 : 10;
     const logicalWidth = single ? SINGLE_WIDTH + (grand ? 20 : 0) : left + 70 + notes.length * WIDTH_PER_NOTE;
     const height = grand ? HEIGHT.grand : HEIGHT.single;
-    const scale = Math.min(MAX_SCALE, width / logicalWidth);
+    // Écran bas (téléphone en paysage) : la portée laisse la place au clavier en dessous.
+    const scale = Math.min(MAX_SCALE, width / logicalWidth, (window.innerHeight * MAX_HEIGHT_RATIO) / height);
     const renderer = new Renderer(element, Renderer.Backends.SVG);
     renderer.resize(logicalWidth * scale, height * scale);
     const context = renderer.getContext();

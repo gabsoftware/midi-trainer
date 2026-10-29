@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { keyboardLayout, OCTAVE_WIDTH, type KeyboardShape } from './keyboardLayout';
+import { keyboardLayout, keyboardRange, OCTAVE_WIDTH, type KeyboardShape } from './keyboardLayout';
 
 const C4 = 60;
 const B4 = 71;
@@ -88,5 +88,25 @@ describe('clavier à demi-tons égaux', () => {
     for (const note of [61, 63, 66, 68, 70]) {
       expect(center(black(note))).toBeCloseTo(((note - C4 + 0.5) * OCTAVE_WIDTH) / 12);
     }
+  });
+});
+
+describe('keyboardRange', () => {
+  it('arrondit aux octaves entières, de Do à Si', () => {
+    // Mi2 à Sol5 : Do2 à Si5, quatre octaves.
+    expect(keyboardRange([40, 50, 79])).toEqual({ low: 36, high: 83 });
+  });
+
+  it('montre au moins deux octaves, complétées vers l’aigu', () => {
+    // Mi4, Sol4, Si4 : une seule octave, on ajoute celle du dessus.
+    expect(keyboardRange([64, 67, 71])).toEqual({ low: C4, high: 83 });
+    expect(keyboardRange([64, 67, 71], 1)).toEqual({ low: C4, high: B4 });
+  });
+
+  it('commence et finit sur une touche blanche', () => {
+    const { low, high } = keyboardRange([61, 75]);
+    const layout = keyboardLayout(low, high);
+    expect(layout.whites[0].note).toBe(low);
+    expect(layout.whites.at(-1)?.note).toBe(high);
   });
 });

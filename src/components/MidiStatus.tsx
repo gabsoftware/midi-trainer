@@ -3,13 +3,14 @@ import type { Messages } from '../i18n/messages';
 import { midiManager } from '../hooks/useMidi';
 import type { MidiSnapshot } from '../midi/MidiInputManager';
 
-function statusText(midi: MidiSnapshot, t: Messages): { label: string; tone: 'ok' | 'warn' | 'error' } {
+function statusText(midi: MidiSnapshot, t: Messages): { label: string; tone: 'ok' | 'warn' | 'error' | 'off' } {
   const name = midi.selectedName || t.midiUnnamedDevice;
   switch (midi.access) {
+    // Pas une erreur : le clavier à l'écran et celui de l'ordinateur restent disponibles.
     case 'unsupported':
-      return { label: t.midiUnsupported, tone: 'error' };
+      return { label: t.midiUnsupported, tone: 'off' };
     case 'denied':
-      return { label: t.midiDenied, tone: 'error' };
+      return { label: t.midiDenied, tone: 'off' };
     case 'idle':
     case 'pending':
       return { label: t.midiConnecting, tone: 'warn' };

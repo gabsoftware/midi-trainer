@@ -24,6 +24,14 @@ body {
   margin: 0;
 }
 
+/*
+ * Pas de compensation automatique du défilement : quand le contenu change (score, journal),
+ * le navigateur décalait la page, et le clavier à l'écran bougeait sous le doigt.
+ */
+html {
+  overflow-anchor: none;
+}
+
 button,
 select {
   font: inherit;
@@ -73,7 +81,7 @@ button.primary kbd {
 }
 
 .app {
-  max-width: 1140px;
+  max-width: 1280px;
   margin: 0 auto;
   padding: 1rem 1.25rem 3rem;
 }
@@ -133,6 +141,23 @@ button.primary kbd {
   background: var(--ko);
 }
 
+.status-dot.off {
+  background: #b9b6ae;
+}
+
+.midi-hint {
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+.midi-hint summary {
+  cursor: pointer;
+}
+
+.midi-hint p {
+  margin: 0.4rem 0 0;
+}
+
 .status-error {
   color: var(--ko);
 }
@@ -140,7 +165,7 @@ button.primary kbd {
 .trainer {
   display: grid;
   gap: 1.25rem 1.75rem;
-  grid-template-areas: 'side' 'main';
+  grid-template-areas: 'main' 'side';
 }
 
 @media (min-width: 960px) {
@@ -164,6 +189,7 @@ button.primary kbd {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  min-width: 0;
 }
 
 .advice {
@@ -756,14 +782,6 @@ input {
   vertical-align: 0.1em;
 }
 
-.browser-notice {
-  margin-bottom: 1rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid #f0d58a;
-  border-radius: 12px;
-  background: #fdf6e3;
-}
-
 .header-tools {
   display: flex;
   flex-wrap: wrap;
@@ -779,14 +797,15 @@ input {
 
 .level-select {
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
+  flex-direction: column;
+  gap: 0.3rem;
   font-weight: 600;
 }
 
 .level-select select {
-  flex: 1;
-  max-width: 100%;
+  width: 100%;
+  min-width: 0;
+  padding-block: 0.45rem;
   font-weight: 400;
 }
 
@@ -1022,8 +1041,7 @@ input {
 .home {
   display: flex;
   flex-direction: column;
-  gap: 1.75rem;
-  max-width: 52rem;
+  gap: 2rem;
 }
 
 .home-hero {
@@ -1035,13 +1053,13 @@ input {
 
 .home-hero h2 {
   margin: 0.5rem 0 0.75rem;
-  font-size: 1.75rem;
-  line-height: 1.2;
+  font-size: clamp(1.6rem, 1rem + 1.6vw, 2.4rem);
+  line-height: 1.15;
 }
 
 .home-hero p {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: clamp(1.05rem, 0.9rem + 0.35vw, 1.25rem);
   color: var(--muted);
 }
 
@@ -1113,4 +1131,96 @@ input {
 
 .home-path li.unavailable {
   color: var(--muted);
+}
+
+.rotate-hint {
+  margin: -0.5rem 0 0;
+  text-align: center;
+}
+
+/* Téléphone (portrait ou paysage) : mêmes seuils que NARROW_SCREEN dans Trainer.tsx. */
+@media (max-width: 700px), (max-height: 500px) {
+  .app {
+    padding: 0.75rem 0.75rem 2rem;
+  }
+
+  .app-header {
+    gap: 0.5rem 1rem;
+    padding-bottom: 0.75rem;
+  }
+
+  .student-label {
+    display: none;
+  }
+
+  .trainer-main {
+    gap: 0.75rem;
+  }
+
+  /* Place pour deux lignes dès le départ : le score qui apparaît ne décale pas la portée. */
+  .trainer-meta {
+    min-height: calc(2 * 1.45em + 0.5rem);
+    align-content: flex-start;
+  }
+
+  .staff-card {
+    min-height: 200px;
+    padding: 0.5rem;
+  }
+
+  /* Touches plus hautes : la largeur vient du nombre d'octaves affichées. */
+  .piano svg {
+    max-height: 32vh;
+  }
+
+  .controls {
+    flex-wrap: wrap;
+  }
+}
+
+@media (orientation: landscape) {
+  .rotate-hint {
+    display: none;
+  }
+}
+
+/* Écran tactile sans clavier : pas de raccourcis clavier à montrer. */
+@media (hover: none) and (pointer: coarse) {
+  .keyboard-hint,
+  .enter-hint,
+  button kbd {
+    display: none;
+  }
+}
+
+/* Téléphone en paysage : portée et clavier visibles ensemble. */
+@media (max-height: 500px) {
+  .staff-card {
+    min-height: 0;
+  }
+
+  .piano svg {
+    max-height: 26vh;
+  }
+
+  /* Les commandes passent sous le clavier : la place va à la portée. */
+  .trainer-main > .controls,
+  .trainer-main > .midi-hint,
+  .trainer-main > .journal {
+    order: 1;
+  }
+}
+
+.backup-reminder {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid #f0d58a;
+  border-radius: 12px;
+  background: #fdf6e3;
+}
+
+.backup-reminder p {
+  margin: 0;
 }

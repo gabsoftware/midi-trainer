@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { lazy, Suspense, useEffect, useState } from 'react';
 import { AboutView, AppFooter } from './components/AboutView';
 import { HomeView } from './components/HomeView';
 import { SettingsView } from './components/SettingsView';
@@ -6,7 +6,6 @@ import { MidiStatus } from './components/MidiStatus';
 import { ProfilePicker } from './components/ProfilePicker';
 import { StatsView } from './components/StatsView';
 import { profileName } from './components/profileName';
-import { Trainer } from './components/Trainer';
 import { WelcomeName } from './components/WelcomeName';
 import { historyService, useHistory } from './hooks/useHistory';
 import { useMidi } from './hooks/useMidi';
@@ -14,6 +13,13 @@ import { useI18n } from './i18n/context';
 import { isLocale, LOCALES } from './i18n/locale';
 import { linkProps, usePage, type Page } from './router';
 import { loadPreferences, savePreferences, type Preferences } from './storage/preferences';
+
+/**
+ * L'entraînement embarque le moteur de partition et sa police musicale (l'essentiel du poids) :
+ * il est chargé à part, pour que l'accueil s'affiche vite.
+ */
+const loadTrainer = () => import('./components/Trainer');
+const Trainer = lazy(() => loadTrainer().then((module) => ({ default: module.Trainer })));
 
 const LOCALE_NAMES = { fr: 'Français', en: 'English' } as const;
 
@@ -29,6 +35,12 @@ export default function App() {
   const [nameSkipped, setNameSkipped] = useState(false);
   /** Réglages par élève, lus une fois puis gardés en mémoire. */
   const [preferencesByProfile, setPreferencesByProfile] = useState<Readonly<Record<string, Preferences>>>({});
+
+  // Une fois la page affichée, l'entraînement se charge en arrière-plan : il sera prêt au clic.
+  useEffect(() => {
+    const timer = setTimeout(() => void loadTrainer(), 1500);
+    return () => clearTimeout(timer);
+  }, []);
 
   const { profiles, profileId } = history;
   const currentProfile = profiles.find((profile) => profile.id === profileId) ?? null;
@@ -73,7 +85,9 @@ export default function App() {
   } else {
     // `key` : changer d'élève repart d'un écran d'entraînement neuf.
     content = (
-      <Trainer key={currentProfile.id} midi={midi} preferences={preferences} onPreferencesChange={updatePreferences} />
+      <Suspense fallback={<p className="loading">{t.loading}</p>}>
+        <Trainer key={currentProfile.id} midi={midi} preferences={preferences} onPreferencesChange={updatePreferences} />
+      </Suspense>
     );
   }
   const showNav = currentProfile !== null && !firstVisit;
@@ -138,12 +152,6 @@ export default function App() {
           </select>
         </div>
       </header>
-      {(midi.access === 'unsupported' || midi.access === 'denied') && (
-        <div className="browser-notice" role="alert">
-          <strong>{midi.access === 'unsupported' ? t.browserUnsupportedTitle : t.midiDeniedTitle}</strong>{' '}
-          {midi.access === 'unsupported' ? t.browserUnsupportedText : t.midiDeniedText}
-        </div>
-      )}
       {content}
       <AppFooter />
     </div>

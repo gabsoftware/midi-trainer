@@ -98,3 +98,14 @@ export function keyboardLayout(low: number, high: number, shape: KeyboardShape =
   }
   return { whites, blacks, width: end };
 }
+
+/**
+ * Étendue d'un clavier réduit aux notes jouées : octaves entières (de Do à Si), au moins
+ * `minOctaves`, complétées vers l'aigu. Sert sur petit écran, pour des touches plus larges.
+ */
+export function keyboardRange(notes: readonly number[], minOctaves = 2): { low: number; high: number } {
+  const low = Math.min(...notes) - pitchClass(Math.min(...notes));
+  const lastOctave = Math.max(...notes) - pitchClass(Math.max(...notes));
+  const octaves = Math.max(minOctaves, (lastOctave - low) / 12 + 1);
+  return { low, high: low + octaves * 12 - 1 };
+}

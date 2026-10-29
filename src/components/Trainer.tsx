@@ -12,6 +12,7 @@ import type { NoteAttempt, PauseReason } from '../exercises/singleNote';
 import { useExam } from '../hooks/useExam';
 import { historyService, useHistory } from '../hooks/useHistory';
 import { useKeyLabels } from '../hooks/useKeyLabels';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { midiManager, useNoteEvents } from '../hooks/useMidi';
 import { useI18n } from '../i18n/context';
 import type { Messages } from '../i18n/messages';
@@ -27,10 +28,13 @@ import type { HistoryError } from '../storage/HistoryService';
 import type { Preferences } from '../storage/preferences';
 import { LevelPicker } from './LevelPicker';
 import { LiveTimer } from './LiveTimer';
+import { keyboardRange } from './keyboardLayout';
 import { KEYS_HIGH, KEYS_LOW, PianoKeys } from './PianoKeys';
 import { StaffView, type StaffNote } from './StaffView';
 
 const WRONG_FLASH_MS = 700;
+/** Téléphone, en portrait ou en paysage : mêmes seuils que dans index.css. */
+const NARROW_SCREEN = '(max-width: 700px), (max-height: 500px)';
 
 const COLORS = {
   pending: '#111',
@@ -356,12 +360,18 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
   // Son activé : les notes du niveau sont préparées à l'avance, pour sonner sans délai.
   const { sound } = preferences;
   const levelNotes = level.notes;
+  // Petit écran : seulement les octaves du niveau, pour des touches assez larges sous le doigt.
+  const narrow = useMediaQuery(NARROW_SCREEN);
+  const { low: keysLow, high: keysHigh } = narrow
+    ? keyboardRange(levelNotes)
+    : { low: KEYS_LOW, high: KEYS_HIGH };
+  const wideKeyboard = narrow && keysHigh - keysLow + 1 > 2 * 12;
   useEffect(() => {
     if (!sound) return;
     // D'abord les notes du niveau, prêtes à jouer ; puis le reste du clavier affiché.
     pianoSampler.preload(levelNotes);
-    pianoSampler.prefetch(KEYS_LOW, KEYS_HIGH);
-  }, [sound, levelNotes]);
+    pianoSampler.prefetch(keysLow, keysHigh);
+  }, [sound, levelNotes, keysLow, keysHigh]);
 
   // Passage automatique à la ligne suivante une fois la ligne terminée.
   const lineDone = line?.done ?? false;
@@ -590,7 +600,7 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
               >
                 {t.start}
               </button>
-              {!examAdvice && !nextAdvice && <p className="hint">{t.orPressEnter}</p>}
+              {!examAdvice && !nextAdvice && <p className="hint enter-hint">{t.orPressEnter}</p>}
             </div>
           )}
 
@@ -659,7 +669,15 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
           </div>
         )}
 
-        <PianoKeys pressed={pressed} onNote={handleNote} shape={preferences.keyboardShape} />
+        <PianoKeys pressed={pressed} onNote={handleNote} shape={preferences.keyboardShape} low={keysLow} high={keysHigh} />
+        {wideKeyboard && <p className="hint rotate-hint">{t.rotateForBiggerKeys}</p>}
+
+        {(midi.access === 'unsupported' || midi.access === 'denied') && (
+          <details className="midi-hint">
+            <summary>{midi.access === 'unsupported' ? t.browserUnsupportedTitle : t.midiDeniedTitle}</summary>
+            <p>{midi.access === 'unsupported' ? t.browserUnsupportedText : t.midiDeniedText}</p>
+          </details>
+        )}
 
         {!exam && attempts.length > 0 && (
           <details className="journal">
