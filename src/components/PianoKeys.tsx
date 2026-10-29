@@ -6,6 +6,9 @@ import { keyboardLayout, type KeyboardShape } from './keyboardLayout';
 
 const WHITE_HEIGHT = 48;
 const BLACK_HEIGHT = 30;
+/** Étendue par défaut : C2 à C7. */
+export const KEYS_LOW = 36;
+export const KEYS_HIGH = 96;
 
 interface PianoKeysProps {
   /** Notes actuellement enfoncées (numéros MIDI). */
@@ -25,7 +28,7 @@ interface PianoKeysProps {
  * Clavier miniature : indique les touches enfoncées et, si `onNote` est fourni, se joue au clic
  * (C2 à C7 par défaut). Géométrie d'un clavier à demi-tons égaux : voir keyboardLayout.ts.
  */
-export function PianoKeys({ pressed, low = 36, high = 96, onNote, shape = 'piano' }: PianoKeysProps) {
+export function PianoKeys({ pressed, low = KEYS_LOW, high = KEYS_HIGH, onNote, shape = 'piano' }: PianoKeysProps) {
   const { t } = useI18n();
   /** Note tenue par chaque pointeur (souris, doigts), pour relâcher la bonne. */
   const held = useRef(new Map<number, number>());

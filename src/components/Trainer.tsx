@@ -27,7 +27,7 @@ import type { HistoryError } from '../storage/HistoryService';
 import type { Preferences } from '../storage/preferences';
 import { LevelPicker } from './LevelPicker';
 import { LiveTimer } from './LiveTimer';
-import { PianoKeys } from './PianoKeys';
+import { KEYS_HIGH, KEYS_LOW, PianoKeys } from './PianoKeys';
 import { StaffView, type StaffNote } from './StaffView';
 
 const WRONG_FLASH_MS = 700;
@@ -357,7 +357,10 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
   const { sound } = preferences;
   const levelNotes = level.notes;
   useEffect(() => {
-    if (sound) pianoSampler.preload(levelNotes);
+    if (!sound) return;
+    // D'abord les notes du niveau, prêtes à jouer ; puis le reste du clavier affiché.
+    pianoSampler.preload(levelNotes);
+    pianoSampler.prefetch(KEYS_LOW, KEYS_HIGH);
   }, [sound, levelNotes]);
 
   // Passage automatique à la ligne suivante une fois la ligne terminée.

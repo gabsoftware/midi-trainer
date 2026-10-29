@@ -1,10 +1,14 @@
-import { playNoteEvent } from '../audio/pianoSampler';
+import { useEffect } from 'react';
+import { pianoSampler, playNoteEvent } from '../audio/pianoSampler';
 import { useI18n } from '../i18n/context';
 import { ADVANCE_DELAYS_MS, SESSION_LENGTHS, type Preferences } from '../storage/preferences';
 import { PianoKeys } from './PianoKeys';
 
 /** Aperçu : aucune touche enfoncée. */
 const NO_KEYS: ReadonlySet<number> = new Set();
+/** Clavier d'aperçu : deux octaves à partir du do central. */
+const PREVIEW_LOW = 60;
+const PREVIEW_HIGH = 83;
 
 interface SettingsViewProps {
   readonly studentName: string;
@@ -15,6 +19,11 @@ interface SettingsViewProps {
 /** Réglages de l'élève courant, enregistrés à chaque modification. */
 export function SettingsView({ studentName, preferences, onChange }: SettingsViewProps) {
   const { t, seconds } = useI18n();
+  const { sound } = preferences;
+
+  useEffect(() => {
+    if (sound) pianoSampler.prefetch(PREVIEW_LOW, PREVIEW_HIGH);
+  }, [sound]);
   const delayLabel = (ms: number) => seconds(ms).replace(/[.,]?0+ s$/, ' s');
 
   return (
@@ -129,8 +138,8 @@ export function SettingsView({ studentName, preferences, onChange }: SettingsVie
         <p className="hint">{t.keyboardShapeHint}</p>
         <PianoKeys
           pressed={NO_KEYS}
-          low={60}
-          high={83}
+          low={PREVIEW_LOW}
+          high={PREVIEW_HIGH}
           shape={preferences.keyboardShape}
           onNote={preferences.sound ? playNoteEvent : undefined}
         />
