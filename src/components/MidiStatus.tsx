@@ -27,7 +27,7 @@ export function MidiStatus({ midi }: { readonly midi: MidiSnapshot }) {
   const connectedDevices = midi.devices.filter((device) => device.connected);
 
   return (
-    <div className="midi-status">
+    <div className="midi-status" title={label}>
       <span className={`status-dot ${tone}`} aria-hidden="true" />
       <span className="status-label">{label}</span>
       {midi.access === 'granted' && connectedDevices.length > 0 && (

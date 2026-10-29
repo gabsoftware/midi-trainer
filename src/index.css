@@ -1153,6 +1153,24 @@ input {
     display: none;
   }
 
+  /* État MIDI : le point seul à l'écran ; le texte reste lu par les lecteurs d'écran. */
+  .status-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .header-tools {
+    gap: 0.4rem;
+  }
+
+  .main-nav a {
+    padding: 0.4rem 0.6rem;
+  }
+
   .trainer-main {
     gap: 0.75rem;
   }
@@ -1164,7 +1182,7 @@ input {
   }
 
   .staff-card {
-    min-height: 200px;
+    min-height: 0;
     padding: 0.5rem;
   }
 
@@ -1175,6 +1193,13 @@ input {
 
   .controls {
     flex-wrap: wrap;
+  }
+
+  /* Les commandes passent sous le clavier : portée et clavier restent ensemble à l'écran. */
+  .trainer-main > .controls,
+  .trainer-main > .midi-hint,
+  .trainer-main > .journal {
+    order: 1;
   }
 }
 
@@ -1195,19 +1220,8 @@ input {
 
 /* Téléphone en paysage : portée et clavier visibles ensemble. */
 @media (max-height: 500px) {
-  .staff-card {
-    min-height: 0;
-  }
-
   .piano svg {
     max-height: 26vh;
-  }
-
-  /* Les commandes passent sous le clavier : la place va à la portée. */
-  .trainer-main > .controls,
-  .trainer-main > .midi-hint,
-  .trainer-main > .journal {
-    order: 1;
   }
 }
 

@@ -8,6 +8,7 @@ import { StatsView } from './components/StatsView';
 import { profileName } from './components/profileName';
 import { WelcomeName } from './components/WelcomeName';
 import { historyService, useHistory } from './hooks/useHistory';
+import { PHONE_SCREEN, useMediaQuery } from './hooks/useMediaQuery';
 import { useMidi } from './hooks/useMidi';
 import { useI18n } from './i18n/context';
 import { isLocale, LOCALES } from './i18n/locale';
@@ -22,6 +23,8 @@ const loadTrainer = () => import('./components/Trainer');
 const Trainer = lazy(() => loadTrainer().then((module) => ({ default: module.Trainer })));
 
 const LOCALE_NAMES = { fr: 'Français', en: 'English' } as const;
+/** Sur téléphone, la place manque dans l'en-tête : le code de la langue suffit. */
+const LOCALE_CODES = { fr: 'FR', en: 'EN' } as const;
 
 /** Pages qui travaillent avec l'élève courant : son prénom est demandé au premier lancement. */
 const STUDENT_PAGES: readonly Page[] = ['practice', 'stats', 'settings'];
@@ -31,6 +34,7 @@ export default function App() {
   const history = useHistory();
   const { t, locale, setLocale } = useI18n();
   const [page, navigate] = usePage();
+  const phone = useMediaQuery(PHONE_SCREEN);
   /** Prénom demandé puis reporté (« Plus tard ») : on ne le redemande pas pendant la visite. */
   const [nameSkipped, setNameSkipped] = useState(false);
   /** Réglages par élève, lus une fois puis gardés en mémoire. */
@@ -146,7 +150,7 @@ export default function App() {
           >
             {LOCALES.map((code) => (
               <option key={code} value={code}>
-                {LOCALE_NAMES[code]}
+                {(phone ? LOCALE_CODES : LOCALE_NAMES)[code]}
               </option>
             ))}
           </select>

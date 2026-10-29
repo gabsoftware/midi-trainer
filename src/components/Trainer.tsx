@@ -12,7 +12,7 @@ import type { NoteAttempt, PauseReason } from '../exercises/singleNote';
 import { useExam } from '../hooks/useExam';
 import { historyService, useHistory } from '../hooks/useHistory';
 import { useKeyLabels } from '../hooks/useKeyLabels';
-import { useMediaQuery } from '../hooks/useMediaQuery';
+import { PHONE_SCREEN, useMediaQuery } from '../hooks/useMediaQuery';
 import { midiManager, useNoteEvents } from '../hooks/useMidi';
 import { useI18n } from '../i18n/context';
 import type { Messages } from '../i18n/messages';
@@ -33,8 +33,6 @@ import { KEYS_HIGH, KEYS_LOW, PianoKeys } from './PianoKeys';
 import { StaffView, type StaffNote } from './StaffView';
 
 const WRONG_FLASH_MS = 700;
-/** Téléphone, en portrait ou en paysage : mêmes seuils que dans index.css. */
-const NARROW_SCREEN = '(max-width: 700px), (max-height: 500px)';
 
 const COLORS = {
   pending: '#111',
@@ -361,7 +359,7 @@ export function Trainer({ midi, preferences, onPreferencesChange }: TrainerProps
   const { sound } = preferences;
   const levelNotes = level.notes;
   // Petit écran : seulement les octaves du niveau, pour des touches assez larges sous le doigt.
-  const narrow = useMediaQuery(NARROW_SCREEN);
+  const narrow = useMediaQuery(PHONE_SCREEN);
   const { low: keysLow, high: keysHigh } = narrow
     ? keyboardRange(levelNotes)
     : { low: KEYS_LOW, high: KEYS_HIGH };
