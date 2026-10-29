@@ -5,6 +5,7 @@ import { findLevel, LEVELS } from '../learning/levels';
 import { evaluateLevel, recommendLevel, type LevelStatus } from '../learning/mastery';
 import type { Page } from '../router';
 import type { Preferences } from '../storage/preferences';
+import { HeroArt } from './HeroArt';
 
 interface HomeViewProps {
   /** Nom de l'élève courant ; `null` : premier lancement, élève pas encore nommé. */
@@ -52,8 +53,16 @@ export function HomeView({ studentName, preferences, onNavigate }: HomeViewProps
   return (
     <main className="home">
       <section className="home-hero">
-        <h2>{t.homeHeadline}</h2>
-        <p>{t.homeIntro}</p>
+        <div>
+          <h2>{t.homeHeadline}</h2>
+          <p>{t.homeIntro}</p>
+          <ul className="home-tags">
+            {t.homeTags.map((tag) => (
+              <li key={tag}>{tag}</li>
+            ))}
+          </ul>
+        </div>
+        <HeroArt />
       </section>
 
       <section className="home-student">

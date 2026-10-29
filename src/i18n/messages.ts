@@ -93,6 +93,7 @@ const fr = {
   homeHeadline: 'Apprenez à lire les notes sur la portée, pas à pas.',
   homeIntro:
     'Une note s’affiche, vous la jouez sur un clavier. L’application vous guide de la clé de sol au grand système, à votre rythme, et fait revenir plus souvent les notes qui vous résistent.',
+  homeTags: ['Gratuit', 'Sans inscription', 'Dans le navigateur'],
   homeFirstVisitTitle: 'Première visite ?',
   homeFirstVisit: 'Indiquez le prénom de l’élève et commencez au niveau 1. Aucune inscription : tout reste dans ce navigateur.',
   homeChooseStudent: 'Choisir un élève ou importer une sauvegarde',
@@ -358,6 +359,7 @@ const en: Messages = {
   homeHeadline: 'Learn to read notes on the staff, step by step.',
   homeIntro:
     'A note appears, you play it on a keyboard. The app guides you from the treble clef to the grand staff, at your own pace, and brings back the notes you struggle with more often.',
+  homeTags: ['Free', 'No sign-up', 'In your browser'],
   homeFirstVisitTitle: 'First visit?',
   homeFirstVisit: 'Enter the student’s first name and start at level 1. No sign-up: everything stays in this browser.',
   homeChooseStudent: 'Choose a student or import a backup',
